@@ -1,4 +1,5 @@
-﻿using System;
+﻿using CrazyflieDotNet.Crazyflie.Feature.Common;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,69 +10,64 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
     /// <summary>
     /// An element in the Log TOC.
     /// </summary>
-    public class LogTocElement
+    public class LogTocElement : ITocElement
     {                
 
-        private class LogTocTypeDescription
-        {
-            public Func<byte[], object> DecodeFunc { get; }
-            public string Name { get; }
-            public byte Size { get; }            
-
-            public LogTocTypeDescription(string name, Func<byte[], object> decodeFunc, byte size)
+        private static readonly IDictionary<byte, TocTypeDescription> _logTypes = 
+            new Dictionary<byte, TocTypeDescription>()
             {
-                DecodeFunc = decodeFunc;
-                Name = name;
-                Size = size;
-
-            }
-        }
-
-        private static readonly IDictionary<byte, LogTocTypeDescription> _logTypes = 
-            new Dictionary<byte, LogTocTypeDescription>()
-            {
-                { 0x01, new LogTocTypeDescription("uint8_t", x => x[0], 1) },
-                { 0x02, new LogTocTypeDescription("uint16_t", x => BitConverter.ToUInt16(x, 0), 2) },
-                { 0x03, new LogTocTypeDescription("uint32_t", x => BitConverter.ToUInt32(x, 0), 4) },
-                { 0x04, new LogTocTypeDescription("int8_t", x => (sbyte)x[0], 1) },
-                { 0x05, new LogTocTypeDescription("int16_t", x => BitConverter.ToInt16(x, 0), 2) },
-                { 0x06, new LogTocTypeDescription("int32_t", x => BitConverter.ToInt32(x, 0), 4) },
-                { 0x08, new LogTocTypeDescription("FP16", x => BitConverter.ToUInt16(x, 0), 2) },
-                { 0x07, new LogTocTypeDescription("float", x => BitConverter.ToSingle(x, 0), 4) },
+                { 0x01, new TocTypeDescription("uint8_t", x => x[0], 1) },
+                { 0x02, new TocTypeDescription("uint16_t", x => BitConverter.ToUInt16(x, 0), 2) },
+                { 0x03, new TocTypeDescription("uint32_t", x => BitConverter.ToUInt32(x, 0), 4) },
+                { 0x04, new TocTypeDescription("int8_t", x => (sbyte)x[0], 1) },
+                { 0x05, new TocTypeDescription("int16_t", x => BitConverter.ToInt16(x, 0), 2) },
+                { 0x06, new TocTypeDescription("int32_t", x => BitConverter.ToInt32(x, 0), 4) },
+                { 0x08, new TocTypeDescription("FP16", x => BitConverter.ToUInt16(x, 0), 2) },
+                { 0x07, new TocTypeDescription("float", x => BitConverter.ToSingle(x, 0), 4) },
             };
 
 
         public byte Access
         {
-            get;
+            get; private set;
         }
 
         public string Name
         {
-            get;
+            get; private set;
         }
 
         public string Group
         {
-            get;
+            get; private set;
         }
 
         public string CType
         {
-            get;
+            get; private set;
         }
 
         public ushort Identifier
         {
-            get;
+            get; private set;
         }
 
         private static Encoding _encoder = Encoding.GetEncoding("ISO-8859-1");
 
+
+        public LogTocElement()
+        {
+            Identifier = 0;            
+        }
+        public LogTocElement(ushort identifier, byte[] data)
+        {
+            InitializeFrom(identifier, data);
+        }
+
         /// <summary>
         /// Data is the binary payload of the element.
         /// </summary>
-        public LogTocElement(ushort identifier, byte[] data)
+        public void InitializeFrom(ushort identifier, byte[] data)
         {
             Identifier = identifier;
 
@@ -79,7 +75,6 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
             var nameEncoded = data.Skip(1 + groupEncoded.Length + 1)
                 .TakeWhile(x => x != 0)
                 .ToArray();
-
 
             Group = _encoder.GetString(groupEncoded);
             Name = _encoder.GetString(nameEncoded);

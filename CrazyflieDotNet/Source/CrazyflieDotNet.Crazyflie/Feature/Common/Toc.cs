@@ -2,20 +2,19 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
-namespace CrazyflieDotNet.Crazyflie.Feature.Log
+namespace CrazyflieDotNet.Crazyflie.Feature.Common
 {
     /// <summary>
     /// Container for TocElements.
     /// </summary>
-    public class LogToc
+    public class Toc<T> where T : ITocElement
     {
 
-        private static readonly ILog _log = LogManager.GetLogger(typeof(LogToc));
+        private static readonly ILog _log = LogManager.GetLogger(typeof(Toc<T>));
 
-        private IDictionary<string, IList<LogTocElement>> _tocContent =
-            new Dictionary<string, IList<LogTocElement>>();
+        private IDictionary<string, IList<T>> _tocContent =
+            new Dictionary<string, IList<T>>();
 
         /// <summary>
         /// Clear the TOC
@@ -28,11 +27,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Add a new TocElement to the TOC container.
         /// </summary>
-        public void AddElement(LogTocElement element)
+        public void AddElement(T element)
         {
             if (!_tocContent.ContainsKey(element.Group))
             {
-                _tocContent[element.Group] = new List<LogTocElement>();
+                _tocContent[element.Group] = new List<T>();
             }
             var forGroup = _tocContent[element.Group];
 
@@ -47,14 +46,14 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Get a TocElement element identified by complete name from the container.
         /// </summary>        
-        public LogTocElement GetElementByCompleteName(string completeName)
+        public T GetElementByCompleteName(string completeName)
         {
             var elementId = GetElementId(completeName);
             if (elementId.HasValue)
             {
                 return GetElementById(elementId.Value);
             }
-            return null;
+            return default(T);
         }
 
         /// <summary>
@@ -80,11 +79,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Get a TocElement element identified by name and group from the container
         /// </summary>
-        public LogTocElement GetElement(string group, string name)
+        public T GetElement(string group, string name)
         {
             if (!_tocContent.ContainsKey(group))
             {
-                return null;
+                return default(T);
             }
             return _tocContent[group].FirstOrDefault(x => x.Name == name);
         }
@@ -93,7 +92,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// Get a TocElement element identified by index number from the
         ///container.
         /// </summary>
-        public LogTocElement GetElementById(ushort identifier)
+        public T GetElementById(ushort identifier)
         {
             foreach (var groupElement in _tocContent.Values)
             {
@@ -105,13 +104,13 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
                     }
                 }
             }
-            return null;
+            return default(T);
         }
 
         /// <summary>
         /// take elements from a cached LogToc.
         /// </summary>
-        internal void AddFromCache(LogToc cached)
+        internal void AddFromCache(Toc<T> cached)
         {
             _tocContent = cached._tocContent;
         }

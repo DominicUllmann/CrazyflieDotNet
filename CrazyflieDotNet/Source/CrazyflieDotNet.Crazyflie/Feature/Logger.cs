@@ -7,6 +7,7 @@ using System.Linq;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Threading;
+using CrazyflieDotNet.Crazyflie.Feature.Common;
 
 namespace CrazyflieDotNet.Crazyflie.Feature
 {
@@ -47,7 +48,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     ///                     Crazyflie. The configuration will have to be re-added to
     ///                     be used again.
     /// </summary>
-    internal class Logger : ITocContainer, ICrazyflieLogger
+    internal class Logger : ITocContainer<LogTocElement>, ICrazyflieLogger
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(Logger));
 
@@ -111,13 +112,13 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private ICrtpCommunicator _communicator;
         private readonly IList<LogConfig> _blocks = new List<LogConfig>();
-        private LogTocCache _tocCache = new LogTocCache();
+        private TocCache<LogTocElement> _tocCache = new TocCache<LogTocElement>();
         private bool _useV2Protocol;
         private byte _config_id_counter = 1;
 
-        public LogToc CurrentLogToc { get; private set; } = null;
+        public Toc<LogTocElement> CurrentLogToc { get; private set; } = null;
         private ManualResetEvent _loadTocDone = new ManualResetEvent(false);
-        private LogTocFetcher _logTocFetcher;
+        private TocFetcher<LogTocElement> _logTocFetcher;
 
         internal Logger(ICrtpCommunicator communicator, bool useV2Protocol)
         {
@@ -125,7 +126,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             _communicator = communicator;
             _communicator.RegisterEventHandler((byte)CrtpPort.LOGGING, LogPacketReceived);
 
-            _logTocFetcher = new LogTocFetcher(_communicator, _tocCache, _useV2Protocol);
+            _logTocFetcher = new TocFetcher<LogTocElement>(_communicator, _tocCache, _useV2Protocol);
             _logTocFetcher.TocReceived += TocFetcher_TocReceived;
         }
 
@@ -145,16 +146,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             config.Start();
         }
 
-        public Task<LogToc> RefreshToc()
+        public Task<Toc<LogTocElement>> RefreshToc()
         {
             CurrentLogToc = null;
             _loadTocDone.Reset();
-            var task = new Task<LogToc>(() => LoadToc());
+            var task = new Task<Toc<LogTocElement>>(() => LoadToc());
             task.Start();
             return task;
         }
 
-        private LogToc LoadToc()
+        private Toc<LogTocElement> LoadToc()
         {
             var message = new CrtpMessage((byte)CrtpPort.LOGGING,
                 (byte)LogChannel.CHAN_SETTINGS, new byte[] { (byte)LogConfigCommand.CMD_RESET_LOGGING });
@@ -349,7 +350,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             }
         }
 
-        private void TocFetcher_TocReceived(object sender, LogTocFetchedEventArgs e)
+        private void TocFetcher_TocReceived(object sender, TocFetchedEventArgs e)
         {
             // signal the waiting task that toc has been received.
             _loadTocDone.Set();

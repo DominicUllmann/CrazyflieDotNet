@@ -1,4 +1,5 @@
-﻿using CrazyflieDotNet.CrazyMessaging;
+﻿using CrazyflieDotNet.Crazyflie.Feature.Common;
+using CrazyflieDotNet.CrazyMessaging;
 using CrazyflieDotNet.CrazyMessaging.Protocol;
 using log4net;
 using System;
@@ -39,15 +40,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(LogConfig));
         private ICrtpCommunicator _communicator;
-        private ITocContainer _tocContainer;
+        private ITocContainer<LogTocElement> _tocContainer;
         private readonly IList<LogVariable> _logVariables = new List<LogVariable>();
         private readonly IList<string> _defaultFetchAs = new List<string>();
 
-        internal LogConfig(ICrtpCommunicator communicator, ITocContainer tocContainer, string name, byte period)
+        internal LogConfig(ICrtpCommunicator communicator, ITocContainer<LogTocElement> tocContainer, string name, byte period)
         {
             _communicator = communicator;
             _tocContainer = tocContainer;
             Period = period;
+            Name = name;
         }
 
         public event LogDataReceivedEventHandler LogDataReceived;
