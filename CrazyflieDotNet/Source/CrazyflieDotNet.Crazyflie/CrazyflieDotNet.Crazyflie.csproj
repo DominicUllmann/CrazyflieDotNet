@@ -43,6 +43,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Feature\Commander.cs" />
+    <Compile Include="Feature\Logger.cs" />
+    <Compile Include="Feature\Log\ITocContainer.cs" />
+    <Compile Include="Feature\Log\LogConfig.cs" />
+    <Compile Include="Feature\Log\LogToc.cs" />
+    <Compile Include="Feature\Log\LogTocCache.cs" />
+    <Compile Include="Feature\Log\LogTocElement.cs" />
+    <Compile Include="Feature\Log\LogTocFetcher.cs" />
+    <Compile Include="Feature\Log\LogVariable.cs" />
+    <Compile Include="Feature\MessageBuilder.cs" />
     <Compile Include="TransferProtocol\CommanderPacketHeader.cs" />
     <Compile Include="TransferProtocol\CommanderPacketPayload.cs" />
     <Compile Include="TransferProtocol\CrazyflieMessenger.cs" />
@@ -80,6 +90,10 @@
     <Compile Include="TransferProtocol\IProvideBytes.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\CrazyflieDotNet.CrazyMessaging\CrazyflieDotNet.CrazyMessaging.csproj">
+      <Project>{9563BF2A-6452-4E0E-8714-84B09A10F012}</Project>
+      <Name>CrazyflieDotNet.CrazyMessaging</Name>
+    </ProjectReference>
     <ProjectReference Include="..\CrazyflieDotNet.Crazyradio\CrazyflieDotNet.Crazyradio.csproj">
       <Project>{B99BA1D6-E560-46F0-A440-443ABC7763F3}</Project>
       <Name>CrazyflieDotNet.Crazyradio</Name>
