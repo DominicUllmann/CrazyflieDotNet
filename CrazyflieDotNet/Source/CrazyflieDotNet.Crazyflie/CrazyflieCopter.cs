@@ -61,6 +61,7 @@ namespace CrazyflieDotNet.Crazyflie
             _platformService.FetchPlatformInformations().Wait();
             _logger = new Logger(_communicator, _platformService.ProtocolVersion >= 4);
             _logger.RefreshToc().Wait();
+            _commander = new Commander(_communicator, false);
         }
 
         public void Disconnect()
