@@ -165,6 +165,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// </summary>
         public void Create()
         {
+            if (!Identifier.HasValue)
+            {
+                throw new InvalidOperationException("LogConfig not yet correctly added (no identifier).");
+            }
+
             var messageBuilder = new MessageBuilder(                
                 (byte)CrtpPort.LOGGING, (byte)Logger.LogChannel.CHAN_SETTINGS);
             if (UseV2)
@@ -175,6 +180,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
             {
                 messageBuilder.Add((byte)Logger.LogConfigCommand.CMD_CREATE_BLOCK);
             }
+            messageBuilder.Add(Identifier.Value);
 
             foreach (var variable in _logVariables)
             {
