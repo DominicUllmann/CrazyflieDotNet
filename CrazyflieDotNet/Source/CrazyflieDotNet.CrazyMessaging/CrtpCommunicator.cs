@@ -145,9 +145,9 @@ namespace CrazyflieDotNet.CrazyMessaging
             _isRunning = false;
             foreach (var wait in toWait)
             {
-                if (!wait.Join(2000))
+                if (!wait.Join(4000))
                 {
-                    wait.Abort();
+                    _log.Error("Failed to stop communicator threads");
                 }
             }
         }
