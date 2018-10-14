@@ -8,15 +8,10 @@ namespace CrazyflieDotNet.CrazyMessaging
     /// </summary>
     public interface ICrtpCommunicator
     {
-        byte ProtocolVersion { get; }
-
         void SendMessage(CrtpMessage message);
 
         void RegisterEventHandler(byte port, CrtpEventCallback crtpEventCallback);
 
         void RemoveEventHandler(byte port, CrtpEventCallback crtpEventCallback);
-
-
-
     }
 }

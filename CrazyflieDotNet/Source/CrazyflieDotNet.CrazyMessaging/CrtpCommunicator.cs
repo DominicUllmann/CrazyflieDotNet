@@ -63,11 +63,7 @@ namespace CrazyflieDotNet.CrazyMessaging
         private byte _retryBeforeDisconnect;
 
         private byte _emptyCounter;
-        private int _waitTime;
-
-
-        // TODO:
-        public byte ProtocolVersion => 3;
+        private int _waitTime;        
 
         public CrtpCommunicator(ICrazyradioDriver crazyradioDriver)
         {
