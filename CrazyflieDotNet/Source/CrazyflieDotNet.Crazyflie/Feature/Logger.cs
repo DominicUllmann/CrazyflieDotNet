@@ -162,7 +162,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             _communicator.SendMessage(message);
             // TODO: expected reply
 
-            if (!_loadTocDone.WaitOne(20000))
+            if (!_loadTocDone.WaitOne(40000))
             {
                 throw new ApplicationException("failed to download toc (timeout)");
             }
