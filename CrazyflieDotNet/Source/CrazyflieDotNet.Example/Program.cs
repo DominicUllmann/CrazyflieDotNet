@@ -79,10 +79,8 @@ namespace CrazyflieDotNet.Example
 
         private static void Config_LogDataReceived(object sender, LogDataReceivedEventArgs e)
         {
-            Console.WriteLine("log received: " + e.TimeStamp);
-            Console.WriteLine("roll: " + e.GetVariable("stabilizer.roll"));
-            Console.WriteLine("pitch: " + e.GetVariable("stabilizer.pitch"));
-            Console.WriteLine("yaw: " + e.GetVariable("stabilizer.yaw"));
+            Log.Info($"log received: {e.TimeStamp}  | " +
+                $"roll: {e.GetVariable("stabilizer.roll") } ,pitch: { e.GetVariable("stabilizer.pitch") }, yaw: {e.GetVariable("stabilizer.yaw")}");
         }
 
         private static ICrazyradioDriver SetupCrazyflieDriver()
