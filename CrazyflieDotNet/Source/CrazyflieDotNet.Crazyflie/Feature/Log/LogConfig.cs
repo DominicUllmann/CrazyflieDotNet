@@ -206,10 +206,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
                         messageBuilder.Add((byte)(tocId & 0x0ff));                        
                     }
                 }
-                _log.Debug($"Adding log block id {Identifier}");
-                _communicator.SendMessage(messageBuilder.Build());
-                // TODO: expected reply: CMD_CREATE_BLOCK_(V2), self.id
-            }        
+            }
+            _log.Debug($"Adding log block id {Identifier}");
+            _communicator.SendMessage(messageBuilder.Build());
+            // TODO: expected reply: CMD_CREATE_BLOCK_(V2), self.id
         }
 
         /// <summary>
