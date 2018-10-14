@@ -43,7 +43,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         private readonly IList<LogVariable> _logVariables = new List<LogVariable>();
         private readonly IList<string> _defaultFetchAs = new List<string>();
 
-        public LogConfig(ICrtpCommunicator communicator, ITocContainer tocContainer, string name, byte period)
+        internal LogConfig(ICrtpCommunicator communicator, ITocContainer tocContainer, string name, byte period)
         {
             _communicator = communicator;
             _tocContainer = tocContainer;
@@ -215,7 +215,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Start the logging for this entry
         /// </summary>
-        public void Start()
+        internal void Start()
         {
             if (!Added)
             {

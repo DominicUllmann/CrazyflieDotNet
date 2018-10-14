@@ -5,6 +5,8 @@ using log4net;
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace CrazyflieDotNet.Crazyflie.Feature
 {
@@ -45,7 +47,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     ///                     Crazyflie. The configuration will have to be re-added to
     ///                     be used again.
     /// </summary>
-    public class Logger : ITocContainer
+    internal class Logger : ITocContainer, ICrazyflieLogger
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(Logger));
 
@@ -109,53 +111,68 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private ICrtpCommunicator _communicator;
         private readonly IList<LogConfig> _blocks = new List<LogConfig>();
-        private LogToc _toc = null;
         private LogTocCache _tocCache = new LogTocCache();
-        private bool _useV2;
+        private bool _useV2Protocol;
         private byte _config_id_counter = 1;
 
-        public LogToc CurrentLogToc => _toc;
+        public LogToc CurrentLogToc { get; private set; } = null;
+        private ManualResetEvent _loadTocDone = new ManualResetEvent(false);
+        private LogTocFetcher _logTocFetcher;
 
-        public Logger(ICrtpCommunicator communicator)
+        internal Logger(ICrtpCommunicator communicator, bool useV2Protocol)
         {
+            _useV2Protocol = useV2Protocol;
             _communicator = communicator;
             _communicator.RegisterEventHandler((byte)CrtpPort.LOGGING, LogPacketReceived);
+
+            _logTocFetcher = new LogTocFetcher(_communicator, _tocCache, _useV2Protocol);
+            _logTocFetcher.TocReceived += TocFetcher_TocReceived;
         }
 
-        public void RefreshToc()
+        /// <summary>
+        /// <see cref="ICrazyflieLogger.CreateEmptyLogConfigEntry"/>
+        /// </summary>        
+        public LogConfig CreateEmptyLogConfigEntry(string name, byte period)
         {
-            // TODO: self.cf.platform.get_protocol_version() >= 4
-            _useV2 = (_communicator.ProtocolVersion >= 4);
-            _toc = null;
+            return new LogConfig(_communicator, this, name, period);
+        }
 
-            // TODO
-            // self._refresh_callback = refresh_done_callback
+        /// <summary>
+        /// <see cref="ICrazyflieLogger.StartConfig(LogConfig)"/>
+        /// </summary>        
+        public void StartConfig(LogConfig config)
+        {
+            config.Start();
+        }
 
+        public Task<LogToc> RefreshToc()
+        {
+            CurrentLogToc = null;
+            _loadTocDone.Reset();
+            var task = new Task<LogToc>(() => LoadToc());
+            task.Start();
+            return task;
+        }
+
+        private LogToc LoadToc()
+        {
             var message = new CrtpMessage((byte)CrtpPort.LOGGING,
                 (byte)LogChannel.CHAN_SETTINGS, new byte[] { (byte)LogConfigCommand.CMD_RESET_LOGGING });
             _communicator.SendMessage(message);
             // TODO: expected reply
 
+            if (!_loadTocDone.WaitOne(20000))
+            {
+                throw new ApplicationException("failed to download toc (timeout)");
+            }
+            return CurrentLogToc;
         }
 
         /// <summary>
-        /// Add a log configuration to the logging framework.
-        ///
-        /// When doing this the contents of the log configuration will be validated
-        /// and listeners for new log configurations will be notified. When
-        /// validating the configuration the variables are checked against the TOC
-        /// to see that they actually exist.If they don't then the configuration
-        /// cannot be used.Since a valid TOC is required, a Crazyflie has to be
-        /// connected when calling this method, otherwise it will fail.
+        /// See <see cref="ICrazyflieLogger.AddConfig(LogConfig)"/>.
         /// </summary>        
         public void AddConfig(LogConfig config)
         {
-            // TODO: check connected
-            // if not self.cf.link:
-            // logger.error('Cannot add configs without being connected to a '
-            //              'Crazyflie!')
-            // return
-
             // If the log configuration contains variables that we added without
             // type (i.e we want the stored as type for fetching as well) then
             // resolve this now and add them to the block again.
@@ -187,9 +204,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             if (size <= MAX_LOG_DATA_PACKET_SIZE && (config.Period > 0 && config.Period < 0xFF))
             {
                 config.Valid = true;
-                // TODO connect to CF
-                // config.CF = ...
-                // config.UseV2 = _useV2
+                config.UseV2 = _useV2Protocol;
                 config.Identifier = _config_id_counter;
                 _config_id_counter = (byte)((_config_id_counter + 1) % 255);
                 _blocks.Add(config);
@@ -206,7 +221,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private LogTocElement EnsureVariableInToc(LogConfig config, string name)
         {
-            var tocVariable = _toc.GetElementByCompleteName(name);
+            var tocVariable = CurrentLogToc.GetElementByCompleteName(name);
             if (tocVariable == null)
             {
                 _log.Warn(
@@ -218,7 +233,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             return tocVariable;
         }
 
-        public LogConfig FindBlock(byte identifier)
+        internal LogConfig FindBlock(byte identifier)
         {
             foreach (var block in _blocks)
             {
@@ -325,14 +340,19 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         {
             // Guard against multiple responses due to re-sending
 
-            if (_toc == null)
+            if (CurrentLogToc == null)
             {
                 _log.Debug("Logging reset, continue with TOC download");
                 _blocks.Clear();
 
-                var tocFetcher = new LogTocFetcher(_communicator, _tocCache);
-                _toc = tocFetcher.Start();
+                CurrentLogToc = _logTocFetcher.Start();
             }
+        }
+
+        private void TocFetcher_TocReceived(object sender, LogTocFetchedEventArgs e)
+        {
+            // signal the waiting task that toc has been received.
+            _loadTocDone.Set();
         }
 
         private void HandleDeleteLoggingCommand(byte id, LogConfig config, byte errorStatus)
