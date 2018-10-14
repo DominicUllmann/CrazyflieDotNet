@@ -6,6 +6,24 @@ using System.Linq;
 
 namespace CrazyflieDotNet.Crazyflie.Feature.Log
 {
+
+    public class LogTocFetchedEventArgs
+    {
+
+        public LogToc LogToc
+        {
+            get;
+        }
+
+        public LogTocFetchedEventArgs(LogToc toc)
+        {
+            LogToc = toc;
+        }
+
+    }
+
+    public delegate void LogTocReceivedEventHandler(object sender, LogTocFetchedEventArgs e);
+
     internal class LogTocFetcher
     {
 
@@ -39,19 +57,21 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         private ushort _nbrOfItems;
         private uint _crc;
 
-        internal LogTocFetcher(ICrtpCommunicator communicator, LogTocCache cache)
+        internal LogTocFetcher(ICrtpCommunicator communicator, LogTocCache cache, bool useV2protocol)
         {
             _communicator = communicator;            
             _port = (byte)CrtpPort.LOGGING;
             _tocCache = cache;
+            _useV2 = useV2protocol;
         }
+
+        internal event LogTocReceivedEventHandler TocReceived;
 
         /// <summary>
         /// returns the toc which is asynchronously completed.
         /// </summary>        
         internal LogToc Start()
-        {
-            _useV2 = _communicator.ProtocolVersion >= 4;
+        {            
             _toc = new LogToc();
             _fetchState = FetchState.GET_TOC_INFO;
             _communicator.RegisterEventHandler(_port, TocPacketReceived);
@@ -178,8 +198,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         {
             _communicator.RemoveEventHandler(_port, TocPacketReceived);
             _log.Debug("Fetch Toc completed");
-            // TODO:
-            //finished_callback()
+            TocReceived?.Invoke(this, new LogTocFetchedEventArgs(_toc));
         }
 
         /// <summary>
