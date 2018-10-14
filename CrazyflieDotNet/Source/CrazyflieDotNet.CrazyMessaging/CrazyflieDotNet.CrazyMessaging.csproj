@@ -9,7 +9,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CrazyflieDotNet.CrazyMessaging\CrazyflieDotNet.CrazyMessaging.csproj" />
     <ProjectReference Include="..\CrazyflieDotNet.Crazyradio\CrazyflieDotNet.Crazyradio.csproj" />
   </ItemGroup>
 
