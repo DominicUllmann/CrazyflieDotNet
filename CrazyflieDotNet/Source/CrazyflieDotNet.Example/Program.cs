@@ -1,4 +1,5 @@
-﻿using CrazyflieDotNet.Crazyflie.Feature;
+﻿using CrazyflieDotNet.Crazyflie;
+using CrazyflieDotNet.Crazyflie.Feature;
 using CrazyflieDotNet.Crazyflie.Feature.Log;
 using CrazyflieDotNet.CrazyMessaging;
 using CrazyflieDotNet.Crazyradio.Driver;
@@ -24,11 +25,13 @@ namespace CrazyflieDotNet.Example
 
             try
             {
-                var crazyradioDriver = SetupCrazyflieDriver();
+                var crazyflie = new CrazyflieCopter();
+                crazyflie.Connect();
+
                 try
                 {
 
-                    LoggingExample(crazyradioDriver);
+                    LoggingExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
 
@@ -43,9 +46,9 @@ namespace CrazyflieDotNet.Example
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("Error testing crazyfly.", ex);
-                    crazyradioDriver?.Close();
+                    Log.Error("Error testing crazyfly.", ex);                    
                 }
+                crazyflie?.Disconnect();
             }
             catch (Exception ex)
             {
@@ -56,23 +59,16 @@ namespace CrazyflieDotNet.Example
             Console.ReadLine();
         }
 
-        private static void LoggingExample(ICrazyradioDriver crazyradioDriver)
+        private static void LoggingExample(CrazyflieCopter crazyflie)
         {
-            var communicator = new CrtpCommunicator(crazyradioDriver);
-            communicator.Start();
-            var commander = new Commander(communicator);
-            var logger = new Logger(communicator);
-            logger.RefreshToc();
-
-            Thread.Sleep(12000);
-
-            var config = new LogConfig(communicator, logger, "Stabilizer", 10);
+           
+            var config = crazyflie.Logger.CreateEmptyLogConfigEntry("Stabilizer", 10);
             config.AddVariable("stabilizer.roll", "float");
             config.AddVariable("stabilizer.pitch", "float");
             config.AddVariable("stabilizer.yaw", "float");
-            logger.AddConfig(config);
             config.LogDataReceived += Config_LogDataReceived;
-            config.Start();
+            crazyflie.Logger.AddConfig(config);
+            crazyflie.Logger.StartConfig(config);
 
             Console.ReadLine();
         }
@@ -83,66 +79,5 @@ namespace CrazyflieDotNet.Example
                 $"roll: {e.GetVariable("stabilizer.roll") } ,pitch: { e.GetVariable("stabilizer.pitch") }, yaw: {e.GetVariable("stabilizer.yaw")}");
         }
 
-        private static ICrazyradioDriver SetupCrazyflieDriver()
-        {
-            IEnumerable<ICrazyradioDriver> crazyradioDrivers = null;
-
-            try
-            {
-                // Scan for connected Crazyradio USB dongles
-                crazyradioDrivers = CrazyradioDriver.GetCrazyradios();
-            }
-            catch (Exception ex)
-            {
-                var msg = "Error getting Crazyradio USB dongle devices connected to computer.";
-                Log.Error(msg, ex);
-                throw new ApplicationException(msg, ex);
-            }
-
-            // If we found any
-            if (crazyradioDrivers != null && crazyradioDrivers.Any())
-            {
-                // Use first available Crazyradio dongle
-                var crazyradioDriver = crazyradioDrivers.First();
-
-                try
-                {
-                    // Initialize driver
-                    crazyradioDriver.Open();
-
-                    // Scan for any Crazyflie quadcopters ready for communication
-                    var scanResults = crazyradioDriver.ScanChannels();
-                    if (scanResults.Any())
-                    {
-                        // Use first online Crazyflie quadcopter found
-                        var firstScanResult = scanResults.First();
-
-                        // Set CrazyradioDriver's DataRate and Channel to that of online Crazyflie
-                        var dataRateWithCrazyflie = firstScanResult.DataRate;
-                        var channelWithCrazyflie = firstScanResult.Channels.First();
-                        crazyradioDriver.DataRate = dataRateWithCrazyflie;
-                        crazyradioDriver.Channel = channelWithCrazyflie;
-
-                        return crazyradioDriver;
-                    }
-                    else
-                    {
-                        Log.Warn("No Crazyflie quadcopters available for communication.");
-                        return null;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    var msg = "Error initializing Crazyradio USB dongle for communication with a Crazyflie quadcopter.";
-                    Log.Error(msg, ex);
-                    throw new ApplicationException(msg, ex);
-                }
-            }
-            else
-            {
-                Log.Warn("No Crazyradio USB dongles found!");
-                return null;
-            }
-        }
     }
 }
