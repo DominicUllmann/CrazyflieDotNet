@@ -234,10 +234,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// Callback for newly arrived packets with TOC information
         /// </summary>
         private void LogPacketReceived(CrtpMessage message)
-        {
-            var cmd = message.Data[0];
+        {            
             if (message.Channel == (byte)LogChannel.CHAN_SETTINGS)
             {
+                var cmd = message.Data[0];
                 var id = message.Data[1];
                 var block = FindBlock(id);
                 var errorStatus = message.Data[2];
@@ -265,7 +265,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             }
             if (message.Channel == (byte)LogChannel.CHAN_LOGDATA)
             {
-                var id = message.Data[1];
+                var id = message.Data[0];
                 var block = FindBlock(id);
                 HandleReceivedLogData(id, block, message.Data.Skip(1).ToArray());
             }
