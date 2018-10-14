@@ -8,7 +8,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     /// <summary>
     /// Used for sending control setpoints to the Crazyflie
     /// </summary>
-    public class Commander
+    internal class Commander : ICrazyflieCommander
     {
         private enum CommandTypeGenericCommander
         {
@@ -44,7 +44,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         /// <summary>
-        /// Send a new control setpoint for roll/pitch/yaw/thrust to the copter
+        /// See <see cref="ICrazyflieCommander.SendSetPoint(float, float, float, ushort)"/>
         /// </summary>
         public void SendSetPoint(float roll, float pitch, float yaw, ushort thrust)
         {
@@ -77,10 +77,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             builder.Add(thrust);
 
             Send(builder);
-        }        
+        }
 
         /// <summary>
-        /// Send STOP setpoing, stopping the motors and(potentially) falling.
+        /// See <see cref="ICrazyflieCommander.SendStopSetPoint"/>
         /// </summary>
         public void SendStopSetPoint()
         {
@@ -94,7 +94,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         /// <summary>
-        /// Send Velocity in the world frame of reference setpoint.
+        /// See <see cref="ICrazyflieCommander.SendVelocityWorldSetpoint(float, float, float, float)"/>
         /// </summary>
         public void SendVelocityWorldSetpoint(float vx, float vy, float vz, float yawrate)
         {
@@ -112,9 +112,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         /// <summary>
-        /// Control mode where the height is send as an absolute setpoint(intended
-        /// to be the distance to the surface under the Crazflie).
-        /// Roll, pitch, yawrate are defined as degrees, degrees, degrees/s
+        /// See <see cref="ICrazyflieCommander.SendZdistanceSetPoint(float, float, float, float)"/>
         /// </summary>
         public void SendZdistanceSetPoint(float roll, float pitch, float yawrate, float zdistance)
         {
@@ -132,10 +130,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         /// <summary>
-        /// Control mode where the height is send as an absolute setpoint(intended
-        /// to be the distance to the surface under the Crazyflie).
-        /// vx and vy are in m/s
-        /// yawrate is in degrees/s
+        /// See <see cref="ICrazyflieCommander.SendHoverSetpoint(float, float, float, float)"/>
         /// </summary>
         public void SendHoverSetpoint(float vx, float vy, float yawrate, float zdistance)
         {
@@ -153,10 +148,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         /// <summary>
-        ///     Control mode where the position is sent as absolute x, y, z coordinate in
-        /// meter and the yaw is the absolute orientation.
-        /// x and y are in m/s
-        /// yaw is in degrees/s
+        /// See <see cref="ICrazyflieCommander.SendPositionSetpoint(float, float, float, float)"/>
+        /// </summary>
         public void SendPositionSetpoint(float x, float y, float z, float yaw)
         {
             byte command = (byte)CommandTypeGenericCommander.TYPE_POSITION;

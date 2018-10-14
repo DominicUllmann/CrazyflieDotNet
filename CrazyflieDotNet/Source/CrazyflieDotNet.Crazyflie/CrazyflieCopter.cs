@@ -39,7 +39,7 @@ namespace CrazyflieDotNet.Crazyflie
             }
         }
 
-        public Commander Commander
+        public ICrazyflieCommander Commander
         {
             get
             {
