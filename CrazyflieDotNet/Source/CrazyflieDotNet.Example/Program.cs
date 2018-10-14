@@ -32,6 +32,7 @@ namespace CrazyflieDotNet.Example
                 {
 
                     LoggingExample(crazyflie);
+                    CommanderExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
 
@@ -59,6 +60,16 @@ namespace CrazyflieDotNet.Example
             Console.ReadLine();
         }
 
+        private static void CommanderExample(CrazyflieCopter crazyflie)
+        {
+            crazyflie.Commander.SendSetPoint(0, 0, 0, 0);
+            for (int i = 0; i < 100; i++)
+            {
+                crazyflie.Commander.SendSetPoint(1, 1, 1, 12000);
+                Thread.Sleep(20);
+            }
+        }
+
         private static void LoggingExample(CrazyflieCopter crazyflie)
         {
            
@@ -70,7 +81,7 @@ namespace CrazyflieDotNet.Example
             crazyflie.Logger.AddConfig(config);
             crazyflie.Logger.StartConfig(config);
 
-            Console.ReadLine();
+            Thread.Sleep(1000);
         }
 
         private static void Config_LogDataReceived(object sender, LogDataReceivedEventArgs e)
