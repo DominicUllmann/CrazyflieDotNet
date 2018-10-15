@@ -497,7 +497,7 @@ namespace CrazyflieDotNet.Crazyradio.Driver
 			get { return _crazyradioUsbDevice.IsOpen; }
 		}
 
-		public IEnumerable<ScanChannelsResult> ScanChannels(RadioChannel channelStart = RadioChannel.Channel1, RadioChannel channelStop = RadioChannel.Channel125)
+		public IEnumerable<ScanChannelsResult> ScanChannels(RadioChannel channelStart = RadioChannel.Channel0, RadioChannel channelStop = RadioChannel.Channel125)
 		{
 			if (channelStop < channelStart)
 			{
@@ -540,7 +540,7 @@ namespace CrazyflieDotNet.Crazyradio.Driver
 			return results;
 		}
 
-		public ScanChannelsResult ScanChannels(RadioDataRate dataRate, RadioChannel channelStart = RadioChannel.Channel1, RadioChannel channelStop = RadioChannel.Channel125)
+		public ScanChannelsResult ScanChannels(RadioDataRate dataRate, RadioChannel channelStart = RadioChannel.Channel0, RadioChannel channelStop = RadioChannel.Channel125)
 		{
 			if (channelStart > channelStop)
 			{

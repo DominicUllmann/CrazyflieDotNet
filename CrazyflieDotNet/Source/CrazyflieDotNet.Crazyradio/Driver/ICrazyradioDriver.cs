@@ -102,7 +102,7 @@ namespace CrazyflieDotNet.Crazyradio.Driver
 		/// </summary>
 		/// <param name="start"> The starting channel number. Inclusive. </param>
 		/// <param name="stop"> The ending channel number. Inclusive. </param>
-		IEnumerable<ScanChannelsResult> ScanChannels(RadioChannel channelStart = RadioChannel.Channel1, RadioChannel channelStop = RadioChannel.Channel125);
+		IEnumerable<ScanChannelsResult> ScanChannels(RadioChannel channelStart = RadioChannel.Channel0, RadioChannel channelStop = RadioChannel.Channel125);
 
 		/// <summary>
 		///     Scans for available Crazyradio USB dongle channels on given data rate within the given range (or full range of
@@ -111,7 +111,7 @@ namespace CrazyflieDotNet.Crazyradio.Driver
 		/// </summary>
 		/// <param name="start"> The starting channel number. Inclusive. </param>
 		/// <param name="stop"> The ending channel number. Inclusive. </param>
-		ScanChannelsResult ScanChannels(RadioDataRate dataRate, RadioChannel channelStart = RadioChannel.Channel1, RadioChannel channelStop = RadioChannel.Channel125);
+		ScanChannelsResult ScanChannels(RadioDataRate dataRate, RadioChannel channelStart = RadioChannel.Channel0, RadioChannel channelStop = RadioChannel.Channel125);
 
 		/// <summary>
 		/// Sends a packet of data in array of byte form via the Crazyradio USB dongle.
