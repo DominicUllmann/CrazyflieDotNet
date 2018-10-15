@@ -1,5 +1,6 @@
 ﻿using log4net;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -8,7 +9,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
     /// <summary>
     /// Container for TocElements.
     /// </summary>
-    public class Toc<T> where T : ITocElement
+    public class Toc<T> : IEnumerable<T> where T : ITocElement
     {
 
         private static readonly ILog _log = LogManager.GetLogger(typeof(Toc<T>));
@@ -113,6 +114,22 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
         internal void AddFromCache(Toc<T> cached)
         {
             _tocContent = cached._tocContent;
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            foreach (var groupElement in _tocContent.Values)
+            {
+                foreach (var nameElement in groupElement)
+                {
+                    yield return nameElement;
+                }
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
         }
     }
 }
