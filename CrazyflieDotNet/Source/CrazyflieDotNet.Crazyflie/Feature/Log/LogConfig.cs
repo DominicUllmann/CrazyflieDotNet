@@ -166,7 +166,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Save the log configuration in the Crazyflie
         /// </summary>
-        public void Create()
+        internal void Create()
         {
             if (!Identifier.HasValue)
             {
@@ -238,7 +238,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Stop the logging for this entry
         /// </summary>
-        public void Stop()
+        internal void Stop()
         {
             if (Identifier != null)
             {
@@ -257,7 +257,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Delete this entry in the Crazyflie
         /// </summary>
-        public void Delete()
+        internal void Delete()
         {
             if (Identifier != null)
             {

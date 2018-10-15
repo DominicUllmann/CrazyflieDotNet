@@ -82,6 +82,9 @@ namespace CrazyflieDotNet.Example
             crazyflie.Logger.StartConfig(config);
 
             Thread.Sleep(1000);
+
+            crazyflie.Logger.StopConfig(config);
+            crazyflie.Logger.DeleteConfig(config);
         }
 
         private static void Config_LogDataReceived(object sender, LogDataReceivedEventArgs e)

@@ -33,5 +33,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// </summary>
         void StartConfig(LogConfig config);
 
+
+        /// <summary>
+        /// Stops and added config.
+        /// </summary>
+        void StopConfig(LogConfig config);
+
+        /// <summary>
+        /// Delete and added config.
+        /// </summary>
+        void DeleteConfig(LogConfig config);
+
     }
 }

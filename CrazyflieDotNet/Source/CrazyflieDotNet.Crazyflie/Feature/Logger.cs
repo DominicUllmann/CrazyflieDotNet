@@ -136,6 +136,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             config.Start();
         }
 
+        public void StopConfig(LogConfig config)
+        {
+            config.Stop();
+        }
+
+        public void DeleteConfig(LogConfig config)
+        {
+            config.Delete();
+        }
+
         protected override void StartLoadToc()
         {
             var message = new CrtpMessage((byte)CrtpPort.LOGGING,
