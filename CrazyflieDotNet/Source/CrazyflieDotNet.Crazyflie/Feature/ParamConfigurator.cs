@@ -21,7 +21,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     /// <summary>
     /// implements the access to parameters.
     /// </summary>
-    internal class ParamConfigurator : TocContainerBase<ParamTocElement>, IParamConfigurator
+    internal class ParamConfigurator : TocContainerBase<ParamTocElement>, ICrazyflieParamConfigurator
     {
 
         private class LoadParamRequest : IDisposable
@@ -86,7 +86,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private void ParameterReceived(object sender, ParameterReceivedEventArgs e)
         {
-            _paramValues[e.Id] = e.ParamValue;
+            var element = CurrentToc.GetElementById(e.Id);
+            var packId = ParamTocElement.GetIdFromCString(element.CType);
+
+            _paramValues[e.Id] = ParamTocElement.Unpack(packId, e.ParamValue);
             if (!_isUpdated && AreAllParamValuesUpdated())
             {
                 _isUpdated = true;
@@ -116,7 +119,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         /// <summary>
-        /// Request an update of all the parameters in the TOC. This downloads all parameters stored in the toc one by one.
+        /// see <see cref="ICrazyflieParamConfigurator.RequestUpdateOfAllParams"/>
         /// </summary>
         public void RequestUpdateOfAllParams()
         {
@@ -153,7 +156,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }        
 
         /// <summary>
-        /// Returns the loaded value if already downloaded. Otherwise null.
+        /// <see cref="ICrazyflieParamConfigurator.GetLoadedParameterValue(string)"/>
         /// </summary>
         public object GetLoadedParameterValue(string completeName)
         {
@@ -167,6 +170,9 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             return null;
         }
 
+        /// <summary>
+        /// see <see cref="ICrazyflieParamConfigurator.RefreshParameterValue(string)"/>
+        /// </summary>
         public Task<object> RefreshParameterValue(string completeName)
         {
             EnsureToc();
@@ -199,5 +205,20 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             return task;            
         }
 
+        /// <summary>
+        /// <see cref="ICrazyflieParamConfigurator.SetValue(string, object)"/>
+        /// </summary>
+        public void SetValue(string completeName, object value)
+        {
+            EnsureToc();
+            var id = CurrentToc.GetElementId(completeName);
+            if (id == null)
+            {
+                throw new ArgumentException($"{completeName} not found in toc", nameof(completeName));
+            }
+            var element = CurrentToc.GetElementById(id.Value);
+            var packId = ParamTocElement.GetIdFromCString(element.CType);
+            _paramSynchronizer.StoreParamValue(id.Value, ParamTocElement.Pack(packId, value));
+        }
     }
 }

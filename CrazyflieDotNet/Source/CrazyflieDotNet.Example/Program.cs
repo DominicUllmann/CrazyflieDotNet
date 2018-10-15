@@ -33,6 +33,7 @@ namespace CrazyflieDotNet.Example
 
                     LoggingExample(crazyflie);
                     CommanderExample(crazyflie);
+                    ParameterExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
 
@@ -58,6 +59,18 @@ namespace CrazyflieDotNet.Example
 
             Console.WriteLine("ended.");
             Console.ReadLine();
+        }
+
+        private static void ParameterExample(CrazyflieCopter crazyflie)
+        {
+            crazyflie.ParamConfigurator.RequestUpdateOfAllParams();
+            crazyflie.ParamConfigurator.AllParametersUpdated += ParamConfigurator_AllParametersUpdated;
+        }
+
+        private static void ParamConfigurator_AllParametersUpdated(object sender, AllParamsUpdatedEventArgs args)
+        {
+            var result = ((ICrazyflieParamConfigurator)sender).GetLoadedParameterValue("system.selftestPassed");
+            Log.Info($"self test passed: {Convert.ToBoolean(result)}");
         }
 
         private static void CommanderExample(CrazyflieCopter crazyflie)

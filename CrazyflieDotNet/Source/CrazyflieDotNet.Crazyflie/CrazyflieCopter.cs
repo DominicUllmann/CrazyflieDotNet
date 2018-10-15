@@ -52,6 +52,18 @@ namespace CrazyflieDotNet.Crazyflie
             }
         }
 
+        public ICrazyflieParamConfigurator ParamConfigurator
+        {
+            get
+            {
+                if (_paramConfigurator == null)
+                {
+                    throw new InvalidOperationException("call connect first");
+                }
+                return _paramConfigurator;
+            }
+        }
+
         public void Connect()
         {
             _crazyradioDriver = SetupCrazyflieDriver();

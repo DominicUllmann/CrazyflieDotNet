@@ -86,6 +86,21 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Parameter
         }
 
         /// <summary>
+        /// Return variable type id given the C-storage name
+        /// </summary>
+        public static byte GetIdFromCString(string name)
+        {
+            foreach (var element in _paramTypes)
+            {
+                if (element.Value.Name == name)
+                {
+                    return element.Key;
+                }
+            }
+            throw new ArgumentException("unkonwn name" + name, nameof(name));
+        }
+
+        /// <summary>
         /// TocElement creator. Data is the binary payload of the element.
         /// </summary>
         public void InitializeFrom(ushort identifier, byte[] data)
@@ -108,6 +123,22 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Parameter
             {
                 Access = AccessLevel.Readwrite;
             }
+        }
+
+        /// <summary>
+        /// Unpack byte array according to id.
+        /// </summary>        
+        public static object Unpack(byte id, byte[] data)
+        {
+            return _paramTypes[id].DecodeFunc(data);
+        }
+
+        /// <summary>
+        /// pack to byte array according to id.
+        /// </summary>        
+        public static byte[] Pack(byte id, object data)
+        {
+            return _paramTypes[id].EncodeFunc(data);
         }
     }
 }

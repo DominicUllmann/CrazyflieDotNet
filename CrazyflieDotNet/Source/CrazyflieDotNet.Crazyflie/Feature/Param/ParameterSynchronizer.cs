@@ -50,11 +50,12 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
 
         private readonly ICrtpCommunicator _communicator;
         private readonly object _lock = new object();
-        private readonly Queue<ParameterRequest> _requests = new Queue<ParameterRequest>();
+        private readonly Queue<ParameterRequest> _requests = new Queue<ParameterRequest>();        
         private readonly bool _useV2;
         private Thread _synchronizationThread;
         private bool _isRunning;
         private ManualResetEvent _waitForContent = new ManualResetEvent(false);
+        private ManualResetEvent _waitForResponse = new ManualResetEvent(false);
         public event ParameterReceivedEventHandler ParameterReceived;
 
         internal ParameterSynchronizer(ICrtpCommunicator communicator, bool useV2)
@@ -65,17 +66,22 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
         }
         
         public void StartProcessing()
-        {
+        {            
             _synchronizationThread = new Thread(ProcessQueue);
             _isRunning = true;
             _waitForContent.Reset();
+            _waitForResponse.Reset();
             _synchronizationThread.Start();
         }
 
         public void StopProcessing()
         {
-            _isRunning = false;
-            _waitForContent.Set(); // stop wait to ensure that we see isRunning change.            
+            lock (_lock)
+            {
+                _isRunning = false;
+                _waitForContent.Set(); // stop wait to ensure that we see isRunning change.            
+                _waitForResponse.Set(); // stop wait to ensure that we see isRunning change.
+            }
             if (!_synchronizationThread.Join(2000))
             {
                 throw new ApplicationException("failed to stop parameter synchronization thread.");
@@ -94,10 +100,23 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
                         {
                             if (_requests.Any())
                             {
+                                _waitForResponse.Reset(); // ensure that thread waites for response.
                                 var currentRequest = _requests.Peek();
                                 _communicator.SendMessageExcpectAnswer(currentRequest.RequestMessage, currentRequest.VerifciationBytes);
                             }
-                        }
+                            else
+                            {
+                                // ensure that thread pauses until next request arrives.
+                                _waitForContent.Reset();
+                                continue; // ensure that we don't wait for a reponse for a non-existing request
+                            }
+                            if (!_isRunning)
+                            {
+                                break;
+                            }
+                        }                        
+                        // only send next request after we received a reponse.
+                        _waitForResponse.WaitOne();
                     }
                 }
                 catch (Exception ex)
@@ -176,14 +195,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
                         var request = _requests.Peek();
                         if (request.ForParamId == forId)
                         {
-                            // remove now from the queue.
+                            // remove now from the queue and notify processing thread to take next one.
                             _requests.Dequeue();
-                        }
-                        // send to wait if no requests any more.
-                        if (!_requests.Any())
-                        {
-                            _waitForContent.Reset();
-                        }
+                            _waitForResponse.Set();
+                        } 
 
                         if (message.Channel == (byte)ParamConfigurator.ParamChannel.READ_CHANNEL)
                         {
