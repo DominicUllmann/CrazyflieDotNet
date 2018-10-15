@@ -195,7 +195,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
                 }
                 else
                 {                    
-                    var tocId = _tocContainer.CurrentLogToc.GetElementId(variable.Name);
+                    var tocId = _tocContainer.CurrentToc.GetElementId(variable.Name);
                     _log.Debug($"Adding {variable.Name} with id={tocId} and type={storage}");
                     messageBuilder.Add(storage);
                     if (UseV2)

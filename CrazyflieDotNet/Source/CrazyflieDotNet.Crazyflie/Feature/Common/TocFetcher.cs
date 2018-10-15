@@ -47,10 +47,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
         private ushort _nbrOfItems;
         private uint _crc;
 
-        internal TocFetcher(ICrtpCommunicator communicator, TocCache<T> cache, bool useV2protocol)
+        internal TocFetcher(ICrtpCommunicator communicator, TocCache<T> cache, byte port, bool useV2protocol)
         {
             _communicator = communicator;            
-            _port = (byte)CrtpPort.LOGGING;
+            _port = port;
             _tocCache = cache;
             _useV2 = useV2protocol;
         }

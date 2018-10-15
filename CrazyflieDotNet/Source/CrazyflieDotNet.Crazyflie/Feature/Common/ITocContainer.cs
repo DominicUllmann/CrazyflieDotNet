@@ -2,7 +2,7 @@
 {
     public interface ITocContainer<T> where T: ITocElement
     {
-        Toc<T> CurrentLogToc
+        Toc<T> CurrentToc
         {
             get;
         }

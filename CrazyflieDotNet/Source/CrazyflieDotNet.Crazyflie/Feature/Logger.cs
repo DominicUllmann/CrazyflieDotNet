@@ -5,8 +5,6 @@ using log4net;
 using System;
 using System.Linq;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using System.Threading;
 using CrazyflieDotNet.Crazyflie.Feature.Common;
 
 namespace CrazyflieDotNet.Crazyflie.Feature
@@ -48,7 +46,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     ///                     Crazyflie. The configuration will have to be re-added to
     ///                     be used again.
     /// </summary>
-    internal class Logger : ITocContainer<LogTocElement>, ICrazyflieLogger
+    internal class Logger : TocContainerBase<LogTocElement>, ICrazyflieLogger
     {
         private static readonly ILog _log = LogManager.GetLogger(typeof(Logger));
 
@@ -110,24 +108,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         // The max size of a CRTP packet payload
         private const byte MAX_LOG_DATA_PACKET_SIZE = 30;
 
-        private ICrtpCommunicator _communicator;
         private readonly IList<LogConfig> _blocks = new List<LogConfig>();
-        private TocCache<LogTocElement> _tocCache = new TocCache<LogTocElement>();
-        private bool _useV2Protocol;
         private byte _config_id_counter = 1;
 
-        public Toc<LogTocElement> CurrentLogToc { get; private set; } = null;
-        private ManualResetEvent _loadTocDone = new ManualResetEvent(false);
-        private TocFetcher<LogTocElement> _logTocFetcher;
 
-        internal Logger(ICrtpCommunicator communicator, bool useV2Protocol)
+        internal Logger(ICrtpCommunicator communicator, bool useV2Protocol) : base(communicator, useV2Protocol,
+            (byte)CrtpPort.LOGGING)
         {
             _useV2Protocol = useV2Protocol;
             _communicator = communicator;
             _communicator.RegisterEventHandler((byte)CrtpPort.LOGGING, LogPacketReceived);
-
-            _logTocFetcher = new TocFetcher<LogTocElement>(_communicator, _tocCache, _useV2Protocol);
-            _logTocFetcher.TocReceived += TocFetcher_TocReceived;
         }
 
         /// <summary>
@@ -146,28 +136,13 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             config.Start();
         }
 
-        public Task<Toc<LogTocElement>> RefreshToc()
-        {
-            CurrentLogToc = null;
-            _loadTocDone.Reset();
-            var task = new Task<Toc<LogTocElement>>(() => LoadToc());
-            task.Start();
-            return task;
-        }
-
-        private Toc<LogTocElement> LoadToc()
+        protected override void StartLoadToc()
         {
             var message = new CrtpMessage((byte)CrtpPort.LOGGING,
                 (byte)LogChannel.CHAN_SETTINGS, new byte[] { (byte)LogConfigCommand.CMD_RESET_LOGGING });
             _communicator.SendMessage(message);
             // TODO: expected reply
-
-            if (!_loadTocDone.WaitOne(40000))
-            {
-                throw new ApplicationException("failed to download toc (timeout)");
-            }
-            return CurrentLogToc;
-        }
+        }        
 
         /// <summary>
         /// See <see cref="ICrazyflieLogger.AddConfig(LogConfig)"/>.
@@ -222,7 +197,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private LogTocElement EnsureVariableInToc(LogConfig config, string name)
         {
-            var tocVariable = CurrentLogToc.GetElementByCompleteName(name);
+            var tocVariable = CurrentToc.GetElementByCompleteName(name);
             if (tocVariable == null)
             {
                 _log.Warn(
@@ -341,19 +316,13 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         {
             // Guard against multiple responses due to re-sending
 
-            if (CurrentLogToc == null)
+            if (CurrentToc == null)
             {
                 _log.Debug("Logging reset, continue with TOC download");
                 _blocks.Clear();
 
-                CurrentLogToc = _logTocFetcher.Start();
+                FetchTocFromTocFetcher();
             }
-        }
-
-        private void TocFetcher_TocReceived(object sender, TocFetchedEventArgs e)
-        {
-            // signal the waiting task that toc has been received.
-            _loadTocDone.Set();
         }
 
         private void HandleDeleteLoggingCommand(byte id, LogConfig config, byte errorStatus)
