@@ -5,6 +5,7 @@ using log4net;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace CrazyflieDotNet.Crazyflie.Feature.Log
 {
@@ -210,8 +211,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
                 }
             }
             _log.Debug($"Adding log block id {Identifier}");
-            _communicator.SendMessage(messageBuilder.Build());
-            // TODO: expected reply: CMD_CREATE_BLOCK_(V2), self.id
+            var msg = messageBuilder.Build();
+            _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
         }
 
         /// <summary>
@@ -227,11 +228,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
             else
             {
                 _log.Debug($"Block already registered, starting logging for id={Identifier}");
-                _communicator.SendMessage(
-                    new CrtpMessage((byte)CrtpPort.LOGGING,
-                    (byte)Logger.LogChannel.CHAN_SETTINGS,
-                    new byte[] { (byte)Logger.LogConfigCommand.CMD_START_LOGGING, Identifier.Value, Period }));
-                // TODO: expected reply.
+                var msg = new CrtpMessage((byte) CrtpPort.LOGGING,
+                                          (byte) Logger.LogChannel.CHAN_SETTINGS,
+                                          new byte[] {(byte) Logger.LogConfigCommand.CMD_START_LOGGING, Identifier.Value, Period});
+                _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
             }
         }
 
@@ -243,11 +243,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
             if (Identifier != null)
             {
                 _log.Debug($"Sending stop logging for block id={Identifier}");
-                _communicator.SendMessage(
-                    new CrtpMessage((byte)CrtpPort.LOGGING,
-                    (byte)Logger.LogChannel.CHAN_SETTINGS,
-                    new byte[] { (byte)Logger.LogConfigCommand.CMD_STOP_LOGGING, Identifier.Value }));
-                // TODO: expected reply.
+                var msg = new CrtpMessage((byte) CrtpPort.LOGGING,
+                                          (byte) Logger.LogChannel.CHAN_SETTINGS,
+                                          new byte[] {(byte) Logger.LogConfigCommand.CMD_STOP_LOGGING, Identifier.Value});
+                _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
             }
             else
             {
@@ -263,11 +262,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
             if (Identifier != null)
             {
                 _log.Debug($"LogEntry: Sending delete logging for block id={Identifier}");
-                _communicator.SendMessage(
-                    new CrtpMessage((byte)CrtpPort.LOGGING,
-                    (byte)Logger.LogChannel.CHAN_SETTINGS,
-                    new byte[] { (byte)Logger.LogConfigCommand.CMD_DELETE_BLOCK, Identifier.Value }));
-                // TODO: expected reply.
+                var msg = new CrtpMessage((byte) CrtpPort.LOGGING,
+                                          (byte) Logger.LogChannel.CHAN_SETTINGS,
+                                          new byte[] {(byte) Logger.LogConfigCommand.CMD_DELETE_BLOCK, Identifier.Value});
+                _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
             }
             else
             {

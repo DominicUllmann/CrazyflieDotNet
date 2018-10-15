@@ -33,6 +33,12 @@ namespace CrazyflieDotNet.CrazyMessaging
         /// <see cref="SendMessageExcpectAnswer(CrtpMessage, Func{CrtpMessage, bool}, TimeSpan)"/></param>
         void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent, TimeSpan timeout);
 
+        /// <summary>
+        /// Send a message and ensure that it is received by the crazyflie.
+        /// (At least once) with default timeout.
+        /// </summary>
+        void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent);
+
         void RegisterEventHandler(byte port, CrtpEventCallback crtpEventCallback);
 
         void RegisterAllEventHandler(CrtpEventCallback crtpEventCallback);

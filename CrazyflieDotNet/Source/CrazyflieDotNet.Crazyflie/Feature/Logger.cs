@@ -140,8 +140,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         {
             var message = new CrtpMessage((byte)CrtpPort.LOGGING,
                 (byte)LogChannel.CHAN_SETTINGS, new byte[] { (byte)LogConfigCommand.CMD_RESET_LOGGING });
-            _communicator.SendMessage(message);
-            // TODO: expected reply
+            _communicator.SendMessageExcpectAnswer(message, new byte[] { message.Data[0] });            
         }        
 
         /// <summary>
@@ -277,9 +276,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                                                       (byte)LogConfigCommand.CMD_START_LOGGING, id,
                                                       config.Period
                                                     }
-                                                  );
-                        _communicator.SendMessage(msg);
-                        // TODO: expected_reply: CMD_START_LOGGING, id)                        
+                                                  );                        
+                        _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
                         config.Added = true;
                     }
                 }

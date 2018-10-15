@@ -57,6 +57,7 @@ namespace CrazyflieDotNet.CrazyMessaging
         private ManualResetEvent _comStarted = new ManualResetEvent(false);
 
         private readonly EventRegistry _crtpEventRegistry = new EventRegistry();
+        private readonly AtLeastOnceCommunicatorStrategy _atLeastOnceCommunicatorStrategy;
 
         private Queue<int> _retries = new Queue<int>();
         private int _retry_sum = 0;
@@ -71,6 +72,7 @@ namespace CrazyflieDotNet.CrazyMessaging
         public CrtpCommunicator(ICrazyradioDriver crazyradioDriver)
         {
             _crazyradioDriver = crazyradioDriver;
+            _atLeastOnceCommunicatorStrategy = new AtLeastOnceCommunicatorStrategy(this);
         }
 
         public event LinkQualityEventHandler LinkQuality;
@@ -370,6 +372,45 @@ namespace CrazyflieDotNet.CrazyMessaging
             }
         }
 
+        public void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent)
+        {
+            SendMessageExcpectAnswer(message, startResponseContent, TimeSpan.FromMilliseconds(400));
+        }        
+
+        public void SendMessageExcpectAnswer(CrtpMessage message, Func<CrtpMessage, bool> isExpectedResponse, TimeSpan timeout)
+        {
+            _atLeastOnceCommunicatorStrategy.RegisterExpectation(message, isExpectedResponse, timeout);
+            SendMessage(message);
+        }
+
+        public void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent, TimeSpan timeout)
+        {
+            SendMessageExcpectAnswer(message, CheckMatch(message, startResponseContent), timeout);
+        }
+
+        private Func<CrtpMessage, bool> CheckMatch(CrtpMessage messageToSend, byte[] startResponseContent)
+        {
+            return message =>
+            {
+                if (message.Port != messageToSend.Port ||
+                    message.Channel != messageToSend.Channel ||
+                    message.Data.Length < startResponseContent.Length)
+                {
+                    return false;
+                }
+
+                for (int i = 0; i < startResponseContent.Length; i++)
+                {
+                    if (startResponseContent[i] != message.Data[i])
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            };
+        }
+
         public void RegisterEventHandler(byte port, CrtpEventCallback crtpEventCallback)
         {
             _crtpEventRegistry.RegisterEventHandler(port, crtpEventCallback);
@@ -383,16 +424,6 @@ namespace CrazyflieDotNet.CrazyMessaging
         public void RemoveEventHandler(byte port, CrtpEventCallback crtpEventCallback)
         {
             _crtpEventRegistry.RemoveEventHandler(port, crtpEventCallback);
-        }
-
-        public void SendMessageExcpectAnswer(CrtpMessage message, Func<CrtpMessage, bool> isExpectedResponse, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
-        }
-
-        public void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent, TimeSpan timeout)
-        {
-            throw new NotImplementedException();
         }
     }
 }

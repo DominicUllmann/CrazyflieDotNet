@@ -83,8 +83,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
 
             var msg = new CrtpMessage(_port, (byte)Logger.LogChannel.CHAN_TOC,
                 content);
-            _communicator.SendMessage(msg);
-            // TODO: expected response
+            _communicator.SendMessageExcpectAnswer(msg, new [] { msg.Data[0] });            
         }
 
         /// <summary>
@@ -201,11 +200,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
 
             _log.Debug($"Requesting index {index} on port {_port}");
 
-            byte[] content;
+            byte[] content;            
             if (_useV2)
             {
                 content = new byte[] { (byte)TocCommand.CMD_TOC_ITEM_V2,
-                    (byte)(index & 0x0ff), (byte) ((index >> 8) & 0x0ff)};
+                    (byte)(index & 0x0ff), (byte) ((index >> 8) & 0x0ff)};                
             }
             else
             {
@@ -214,8 +213,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
 
             var msg = new CrtpMessage(_port, (byte)Logger.LogChannel.CHAN_TOC,
                 content);
-            _communicator.SendMessage(msg);
-            // TODO: expected response
+            _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(content.Length).ToArray());
         }
 
     }
