@@ -13,40 +13,48 @@ namespace CrazyflieDotNet.CrazyMessaging
 
         private static readonly ILog _log = LogManager.GetLogger(typeof(EventRegistry));
 
-        private IDictionary<byte, IList<CrtpEventCallback>> _eventCallbacks = 
+        private IDictionary<byte, IList<CrtpEventCallback>> _eventCallbacksSpecificPort = 
             new Dictionary<byte, IList<CrtpEventCallback>>();
 
+        private IList<CrtpEventCallback> _eventCallbacksAll = new List<CrtpEventCallback>();
+
         private object _lock = new object();
+
+        internal void RegisterAllEventHandler(CrtpEventCallback crtpEventCallback)
+        {
+            lock (_lock)
+            {
+                _eventCallbacksAll.Add(crtpEventCallback);
+            }
+        }
 
         internal void RegisterEventHandler(byte port, CrtpEventCallback crtpEventCallback)
         {
             lock (_lock)
             {
-                if (!_eventCallbacks.ContainsKey(port))
+                if (!_eventCallbacksSpecificPort.ContainsKey(port))
                 {
                     IList<CrtpEventCallback> handlers = new List<CrtpEventCallback>();
-                    _eventCallbacks[port] = handlers;
+                    _eventCallbacksSpecificPort[port] = handlers;
                 }
 
-                _eventCallbacks[port].Add(crtpEventCallback);
+                _eventCallbacksSpecificPort[port].Add(crtpEventCallback);
             }
         }
 
         internal void Notify(CrtpMessage crtpMessage)
         {
-            IList<CrtpEventCallback> handlersToNotify = new List<CrtpEventCallback>();
+            // copy handlers so that we don't need to keep lock during notify to protect handler list against modification.
+            var handlersToNotify = new List<CrtpEventCallback>();
             lock (_lock)
             {
+                handlersToNotify.AddRange(_eventCallbacksAll);
                 IList<CrtpEventCallback> handlers;
-                if (!_eventCallbacks.TryGetValue(crtpMessage.Port, out handlers))
+                if (!_eventCallbacksSpecificPort.TryGetValue(crtpMessage.Port, out handlers))
                 {
                     return;
                 }
-                // copy handlers so that we don't need to keep lock during notify to protect handler list against modification.
-                foreach (var handler in handlers)
-                {
-                    handlersToNotify.Add(handler);
-                }
+                handlersToNotify.AddRange(handlers);                
 
             }
             foreach (var handler in handlersToNotify)
@@ -66,12 +74,12 @@ namespace CrazyflieDotNet.CrazyMessaging
         {
             lock (_lock)
             {
-                if (!_eventCallbacks.ContainsKey(port))
+                if (!_eventCallbacksSpecificPort.ContainsKey(port))
                 {
                     return;
                 }
 
-                _eventCallbacks[port].Remove(crtpEventCallback);
+                _eventCallbacksSpecificPort[port].Remove(crtpEventCallback);
             }
         }
     }

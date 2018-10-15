@@ -35,6 +35,8 @@ namespace CrazyflieDotNet.CrazyMessaging
 
         void RegisterEventHandler(byte port, CrtpEventCallback crtpEventCallback);
 
+        void RegisterAllEventHandler(CrtpEventCallback crtpEventCallback);
+
         void RemoveEventHandler(byte port, CrtpEventCallback crtpEventCallback);
     }
 }

@@ -312,8 +312,8 @@ namespace CrazyflieDotNet.CrazyMessaging
                 var oldest = _retries.Dequeue();
                 _retry_sum -= oldest;
             }
-            var link_quality = ((float)_retry_sum / _retries.Count) * 10;
-            LinkQuality?.Invoke(this, new LinkQualityEventArgs(link_quality));
+            var linkQuality = ((float)_retry_sum / _retries.Count) * 10;
+            LinkQuality?.Invoke(this, new LinkQualityEventArgs(linkQuality));
         }
 
         private CrtpResponse Send(CrtpMessage outMessage)
@@ -373,6 +373,11 @@ namespace CrazyflieDotNet.CrazyMessaging
         public void RegisterEventHandler(byte port, CrtpEventCallback crtpEventCallback)
         {
             _crtpEventRegistry.RegisterEventHandler(port, crtpEventCallback);
+        }
+
+        public void RegisterAllEventHandler(CrtpEventCallback crtpEventCallback)
+        {
+            _crtpEventRegistry.RegisterAllEventHandler(crtpEventCallback);
         }
 
         public void RemoveEventHandler(byte port, CrtpEventCallback crtpEventCallback)
