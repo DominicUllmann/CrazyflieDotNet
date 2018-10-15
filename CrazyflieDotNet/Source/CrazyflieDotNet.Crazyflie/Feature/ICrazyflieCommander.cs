@@ -1,5 +1,8 @@
 ﻿namespace CrazyflieDotNet.Crazyflie.Feature
 {
+    /// <summary>
+    /// Allows to send low level commands to the crazyflie.
+    /// </summary>
     public interface ICrazyflieCommander
     {
 
