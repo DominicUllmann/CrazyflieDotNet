@@ -63,7 +63,10 @@ namespace CrazyflieDotNet.CrazyMessaging
         private byte _retryBeforeDisconnect;
 
         private byte _emptyCounter;
-        private int _waitTime;        
+        private int _waitTime;
+
+        private const int _maxInqueue = 100;
+        private const int _maxOutqueue = 20;
 
         public CrtpCommunicator(ICrazyradioDriver crazyradioDriver)
         {
@@ -154,10 +157,11 @@ namespace CrazyflieDotNet.CrazyMessaging
             {
                 // ensure that outqueue doesn't get too big. Drop older packets if more than one already waiting
                 // so that we have at most 100 packets in queue.
-                while (_outgoing.Count > 100)
-                {
+                while (_outgoing.Count > _maxOutqueue)
+                {                    
                     // the older messages are at the beginning, so dequeue until we have the most recent on top.
-                    _outgoing.Dequeue();
+                    var old = _outgoing.Dequeue();
+                    _log.Warn($"too many messages in out queue, drop for port {old.Port}");
                 }
                 _outgoing.Enqueue(message);
                 _waitForOutqueue.Set();
@@ -223,10 +227,11 @@ namespace CrazyflieDotNet.CrazyMessaging
                     lock (_lock)
                     {
                         _incoming.Enqueue(response.Content);
-                        while (_incoming.Count > 100)
-                        {
+                        while (_incoming.Count > _maxInqueue)
+                        {                            
                             // dequue old messages which are not processed and therefore stale.
-                            _incoming.Dequeue();
+                            var old = _incoming.Dequeue();
+                            _log.Warn($"Too many old message not processed, drop for port: {old.Port}.");
                         }
                         _waitForInqueue.Set();
                     }
