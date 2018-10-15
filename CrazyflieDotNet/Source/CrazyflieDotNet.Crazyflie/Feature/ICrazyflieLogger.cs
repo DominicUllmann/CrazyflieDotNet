@@ -44,5 +44,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// </summary>
         void DeleteConfig(LogConfig config);
 
+        /// <summary>
+        /// Returns true if the log variable is known in the toc.
+        /// </summary>
+        bool IsLogVariableKnown(string completeName);
+
     }
 }

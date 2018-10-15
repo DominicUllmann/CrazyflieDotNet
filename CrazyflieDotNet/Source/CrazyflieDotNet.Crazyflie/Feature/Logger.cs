@@ -389,5 +389,17 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             _err_codes.TryGetValue(errorStatus, out msg);
             _log.Warn($"Error {errorStatus} when {action} id={id}; {msg}");
         }
+
+        /// <summary>
+        /// <see cref="ICrazyflieLogger.IsLogVariableKnown(string)"/>
+        /// </summary>
+        public bool IsLogVariableKnown(string completeName)
+        {
+            if (CurrentToc == null)
+            {
+                throw new InvalidOperationException("no toc for log entries available.");
+            }
+            return CurrentToc.GetElementByCompleteName(completeName) != null;
+        }
     }
 }

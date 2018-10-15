@@ -102,7 +102,11 @@ namespace CrazyflieDotNet.Example
 
         private static void LoggingExample(CrazyflieCopter crazyflie)
         {
-           
+
+            if (!crazyflie.Logger.IsLogVariableKnown("stabilizer.roll"))
+            {
+                Log.Warn("stabilizer.roll not a known log variable");
+            }
             var config = crazyflie.Logger.CreateEmptyLogConfigEntry("Stabilizer", 10);
             config.AddVariable("stabilizer.roll", "float");
             config.AddVariable("stabilizer.pitch", "float");
