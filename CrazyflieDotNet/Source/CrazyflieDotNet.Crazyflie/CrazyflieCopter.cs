@@ -18,6 +18,7 @@ namespace CrazyflieDotNet.Crazyflie
 
         private Commander _commander;
         private Logger _logger;
+        private ParamConfigurator _paramConfigurator;
         private PlatformService _platformService;
 
         public CrazyflieCopter()
@@ -59,8 +60,13 @@ namespace CrazyflieDotNet.Crazyflie
             _communicator.Start();
             _platformService = new PlatformService(_communicator);
             _platformService.FetchPlatformInformations().Wait();
-            _logger = new Logger(_communicator, _platformService.ProtocolVersion >= 4);
-            _logger.RefreshToc().Wait();
+            bool useV2 = _platformService.ProtocolVersion >= 4;
+            _paramConfigurator = new ParamConfigurator(_communicator, useV2);
+            _logger = new Logger(_communicator, useV2);
+            var paramTask =_paramConfigurator.RefreshToc();
+            var logTaks = _logger.RefreshToc();
+            paramTask.Wait();
+            logTaks.Wait();
             _commander = new Commander(_communicator, false);
         }
 
