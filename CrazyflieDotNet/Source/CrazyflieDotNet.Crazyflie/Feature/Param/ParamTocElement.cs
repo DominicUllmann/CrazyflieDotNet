@@ -1,4 +1,5 @@
 ﻿using CrazyflieDotNet.Crazyflie.Feature.Common;
+using CrazyflieDotNet.Crazyflie.Feature.Param;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -12,20 +13,20 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Parameter
     public class ParamTocElement : ITocElement
     {
 
-        private static readonly IDictionary<byte, TocTypeDescription> _paramTypes =
-             new Dictionary<byte, TocTypeDescription>()
+        private static readonly IDictionary<byte, ParamTocTypeDescription> _paramTypes =
+             new Dictionary<byte, ParamTocTypeDescription>()
              {
-                { 0x08, new TocTypeDescription("uint8_t", x => x[0], 1) },
-                { 0x09, new TocTypeDescription("uint16_t", x => BitConverter.ToUInt16(x, 0), 2) },
-                { 0x0A, new TocTypeDescription("uint32_t", x => BitConverter.ToUInt32(x, 0), 4) },
-                { 0x0B, new TocTypeDescription("uint64_t", x => BitConverter.ToUInt64(x, 0), 8) },
-                { 0x00, new TocTypeDescription("int8_t", x => (sbyte)x[0], 1) },
-                { 0x01, new TocTypeDescription("int16_t", x => BitConverter.ToInt16(x, 0), 2) },
-                { 0x02, new TocTypeDescription("int32_t", x => BitConverter.ToInt32(x, 0), 4) },
-                { 0x03, new TocTypeDescription("int64_t", x => BitConverter.ToInt64(x, 0), 8) },
-                { 0x05, new TocTypeDescription("FP16", x => BitConverter.ToUInt16(x, 0), 2) },
-                { 0x06, new TocTypeDescription("float", x => BitConverter.ToSingle(x, 0), 4) },
-                { 0x07, new TocTypeDescription("double", x => BitConverter.ToDouble(x, 0), 8) }                
+                { 0x08, new ParamTocTypeDescription("uint8_t", x => x[0], x => new byte[] { (byte)x }, 1) },
+                { 0x09, new ParamTocTypeDescription("uint16_t", x => BitConverter.ToUInt16(x, 0), x => BitConverter.GetBytes((ushort)x), 2) },
+                { 0x0A, new ParamTocTypeDescription("uint32_t", x => BitConverter.ToUInt32(x, 0), x => BitConverter.GetBytes((uint)x), 4) },
+                { 0x0B, new ParamTocTypeDescription("uint64_t", x => BitConverter.ToUInt64(x, 0), x => BitConverter.GetBytes((ulong)x), 8) },
+                { 0x00, new ParamTocTypeDescription("int8_t", x => (sbyte)x[0],  x => new byte[] { Convert.ToByte(x) }, 1) },
+                { 0x01, new ParamTocTypeDescription("int16_t", x => BitConverter.ToInt16(x, 0), x => BitConverter.GetBytes((short)x), 2) },
+                { 0x02, new ParamTocTypeDescription("int32_t", x => BitConverter.ToInt32(x, 0), x => BitConverter.GetBytes((int)x), 4) },
+                { 0x03, new ParamTocTypeDescription("int64_t", x => BitConverter.ToInt64(x, 0), x => BitConverter.GetBytes((long)x), 8) },
+                { 0x05, new ParamTocTypeDescription("FP16", x => BitConverter.ToUInt16(x, 0), x => BitConverter.GetBytes((ushort)x), 2) },
+                { 0x06, new ParamTocTypeDescription("float", x => BitConverter.ToSingle(x, 0), x => BitConverter.GetBytes((float)x), 4) },
+                { 0x07, new ParamTocTypeDescription("double", x => BitConverter.ToDouble(x, 0),  x => BitConverter.GetBytes((double)x), 8) }                
              };
 
 

@@ -40,7 +40,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             Add(encoded);
         }
 
-        private void Add(byte[] encoded)
+        public void Add(byte[] encoded)
         {
             _data.Write(encoded, 0, encoded.Length);
         }
