@@ -34,6 +34,7 @@ namespace CrazyflieDotNet.Example
                     LoggingExample(crazyflie);
                     CommanderExample(crazyflie);
                     ParameterExample(crazyflie);
+                    HighLevelCommandExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
 
@@ -59,6 +60,22 @@ namespace CrazyflieDotNet.Example
 
             Console.WriteLine("ended.");
             Console.ReadLine();
+        }
+
+        
+
+        private static void HighLevelCommandExample(CrazyflieCopter crazyflie)
+        {
+            if (crazyflie.ParamConfigurator.IsParameterKnown("commander.enHighLevel"))
+            {
+                crazyflie.ParamConfigurator.SetValue("commander.enHighLevel", (byte)1);
+                crazyflie.ParamConfigurator.SetValue("stabilizer.controller", (byte)2);
+
+                crazyflie.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1);
+                Thread.Sleep(10);
+                crazyflie.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0);
+                Thread.Sleep(1000);
+            }
         }
 
         private static void ParameterExample(CrazyflieCopter crazyflie)

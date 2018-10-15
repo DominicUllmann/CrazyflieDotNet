@@ -35,5 +35,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// Sets the given parameter to the provided value.
         /// </summary>
         void SetValue(string completeName, object value);
+
+        /// <summary>
+        /// Returns true if the parameter is known in the toc.
+        /// </summary>
+        bool IsParameterKnown(string completeName);
     }
 }

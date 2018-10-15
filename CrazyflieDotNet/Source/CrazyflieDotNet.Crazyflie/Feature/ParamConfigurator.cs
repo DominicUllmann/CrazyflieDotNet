@@ -220,5 +220,14 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             var packId = ParamTocElement.GetIdFromCString(element.CType);
             _paramSynchronizer.StoreParamValue(id.Value, ParamTocElement.Pack(packId, value));
         }
+
+        /// <summary>
+        /// <see cref="ICrazyflieParamConfigurator.IsParameterKnown(string)"/>
+        /// </summary>
+        public bool IsParameterKnown(string completeName)
+        {
+            EnsureToc();
+            return CurrentToc.GetElementByCompleteName(completeName) != null;
+        }
     }
 }
