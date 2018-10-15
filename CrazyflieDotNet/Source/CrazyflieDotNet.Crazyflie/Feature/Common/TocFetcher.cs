@@ -18,6 +18,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
     {
 
         private static readonly ILog _log = LogManager.GetLogger(typeof(TocFetcher<T>));
+        private const byte TOC_CHANNEL = 0;
 
         /// <summary>
         /// Commands used when accessing the Table of Contents
@@ -81,7 +82,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
                 content = new byte[] { (byte)TocCommand.CMD_TOC_INFO };
             }
 
-            var msg = new CrtpMessage(_port, (byte)Logger.LogChannel.CHAN_TOC,
+            var msg = new CrtpMessage(_port, TOC_CHANNEL,
                 content);
             _communicator.SendMessageExcpectAnswer(msg, new [] { msg.Data[0] });            
         }
@@ -91,7 +92,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
         /// </summary>        
         private void TocPacketReceived(CrtpMessage message)
         {
-            if (message.Channel != (byte)Logger.LogChannel.CHAN_TOC)
+            if (message.Channel != TOC_CHANNEL)
             {
                 return;
             }
@@ -211,7 +212,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
                 content = new byte[] { (byte)TocCommand.CMD_TOC_ELEMENT, (byte)(index & 0xff) };
             }
 
-            var msg = new CrtpMessage(_port, (byte)Logger.LogChannel.CHAN_TOC,
+            var msg = new CrtpMessage(_port, TOC_CHANNEL,
                 content);
             _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(content.Length).ToArray());
         }
