@@ -379,5 +379,15 @@ namespace CrazyflieDotNet.CrazyMessaging
         {
             _crtpEventRegistry.RemoveEventHandler(port, crtpEventCallback);
         }
+
+        public void SendMessageExcpectAnswer(CrtpMessage message, Func<CrtpMessage, bool> isExpectedResponse, TimeSpan timeout)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent, TimeSpan timeout)
+        {
+            throw new NotImplementedException();
+        }
     }
 }
