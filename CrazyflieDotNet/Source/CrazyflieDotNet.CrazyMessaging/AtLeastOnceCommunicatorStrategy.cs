@@ -25,7 +25,8 @@ namespace CrazyflieDotNet.CrazyMessaging
             {
                 Request = request;
                 _checkFunction = checkFunction;
-                _waitTimer = new Timer(RequestTimeout, null, 0, (int)Math.Round(timeout.TotalMilliseconds));
+                var timerInterValInMs = (int) Math.Round(timeout.TotalMilliseconds);
+                _waitTimer = new Timer(RequestTimeout, null, timerInterValInMs, timerInterValInMs);
 
                 _notifyTimeout = notifyTimeout;
             }

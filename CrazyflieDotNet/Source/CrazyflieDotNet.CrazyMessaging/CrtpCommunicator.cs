@@ -374,7 +374,7 @@ namespace CrazyflieDotNet.CrazyMessaging
 
         public void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent)
         {
-            SendMessageExcpectAnswer(message, startResponseContent, TimeSpan.FromMilliseconds(400));
+            SendMessageExcpectAnswer(message, startResponseContent, TimeSpan.FromMilliseconds(250));
         }        
 
         public void SendMessageExcpectAnswer(CrtpMessage message, Func<CrtpMessage, bool> isExpectedResponse, TimeSpan timeout)
