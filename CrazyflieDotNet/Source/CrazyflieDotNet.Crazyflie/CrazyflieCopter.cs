@@ -17,6 +17,7 @@ namespace CrazyflieDotNet.Crazyflie
         private ICrazyradioDriver _crazyradioDriver;
 
         private Commander _commander;
+        private HighlevelCommander _highlevelCommander;
         private Logger _logger;
         private ParamConfigurator _paramConfigurator;
         private PlatformService _platformService;
@@ -64,6 +65,18 @@ namespace CrazyflieDotNet.Crazyflie
             }
         }
 
+        public ICrazyflieHighlevelCommander HighLevelCommander
+        {
+            get
+            {
+                if (_highlevelCommander == null)
+                {
+                    throw new InvalidOperationException("call connect first");
+                }
+                return _highlevelCommander;
+            }
+        }
+
         public void Connect()
         {
             _crazyradioDriver = SetupCrazyflieDriver();
@@ -80,6 +93,7 @@ namespace CrazyflieDotNet.Crazyflie
             paramTask.Wait();
             logTaks.Wait();
             _commander = new Commander(_communicator, false);
+            _highlevelCommander = new HighlevelCommander(_communicator);
         }
 
         public void Disconnect()
