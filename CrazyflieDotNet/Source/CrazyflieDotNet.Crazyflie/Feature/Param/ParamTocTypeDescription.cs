@@ -10,6 +10,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
 
         public ParamTocTypeDescription(string name, Func<byte[], object> decodeFunc, Func<object, byte[]> encodeFunc, byte size) : base(name, decodeFunc, size)
         {
+            EncodeFunc = encodeFunc;
         }
 
 
