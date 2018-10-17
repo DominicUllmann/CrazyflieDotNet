@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Threading;
 using System.Threading.Tasks;
@@ -74,8 +75,9 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         public event AllParamsUpdatedEventHandler AllParametersUpdated;
 
-        internal ParamConfigurator(ICrtpCommunicator communicator, bool useV2Protocol) : 
-            base(communicator, useV2Protocol, (byte)CrtpPort.PARAM)
+        internal ParamConfigurator(ICrtpCommunicator communicator, bool useV2Protocol, DirectoryInfo cacheDirectory) :
+            base(communicator, useV2Protocol, (byte)CrtpPort.PARAM,
+                new DirectoryInfo(Path.Combine(cacheDirectory.FullName, "PARAM")))
         {
             _useV2Protocol = useV2Protocol;
             _communicator = communicator;

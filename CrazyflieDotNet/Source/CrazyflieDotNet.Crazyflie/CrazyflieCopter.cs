@@ -4,6 +4,7 @@ using CrazyflieDotNet.Crazyradio.Driver;
 using log4net;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace CrazyflieDotNet.Crazyflie
@@ -21,9 +22,20 @@ namespace CrazyflieDotNet.Crazyflie
         private Logger _logger;
         private ParamConfigurator _paramConfigurator;
         private PlatformService _platformService;
+        private DirectoryInfo _cacheDirectory;
 
-        public CrazyflieCopter()
+        /// <summary>
+        /// Creates a new instance to communicate with one crazycopter.
+        /// </summary>
+        /// <param name="cacheDirectory">set cacheDirectory to the directory where to store table of contents downloaded from the crazyfly for
+        /// connection speed up. Default: .\cache</param>
+        public CrazyflieCopter(DirectoryInfo cacheDirectory = null)
         {            
+            if (cacheDirectory == null)
+            {
+                cacheDirectory = new DirectoryInfo(@".\cache");
+            }
+            _cacheDirectory = cacheDirectory;
         }
 
         /// <summary>
@@ -91,8 +103,8 @@ namespace CrazyflieDotNet.Crazyflie
             _platformService = new PlatformService(_communicator);
             _platformService.FetchPlatformInformations().Wait();
             bool useV2 = _platformService.ProtocolVersion >= 4;
-            _paramConfigurator = new ParamConfigurator(_communicator, useV2);
-            _logger = new Logger(_communicator, useV2);
+            _paramConfigurator = new ParamConfigurator(_communicator, useV2, _cacheDirectory);
+            _logger = new Logger(_communicator, useV2, _cacheDirectory);
             var paramTask =_paramConfigurator.RefreshToc();
             var logTaks = _logger.RefreshToc();
             paramTask.Wait();

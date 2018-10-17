@@ -6,6 +6,7 @@ using System;
 using System.Linq;
 using System.Collections.Generic;
 using CrazyflieDotNet.Crazyflie.Feature.Common;
+using System.IO;
 
 namespace CrazyflieDotNet.Crazyflie.Feature
 {
@@ -112,8 +113,9 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         private byte _config_id_counter = 1;
 
 
-        internal Logger(ICrtpCommunicator communicator, bool useV2Protocol) : base(communicator, useV2Protocol,
-            (byte)CrtpPort.LOGGING)
+        internal Logger(ICrtpCommunicator communicator, bool useV2Protocol, DirectoryInfo cacheDirectory) : base(communicator, useV2Protocol,
+            (byte)CrtpPort.LOGGING,
+            new DirectoryInfo(Path.Combine(cacheDirectory.FullName, "LOG")))
         {
             _useV2Protocol = useV2Protocol;
             _communicator = communicator;

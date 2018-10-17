@@ -1,4 +1,5 @@
 ﻿using CrazyflieDotNet.Crazyflie.Feature.Common;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,27 +27,31 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
                 { 0x07, new TocTypeDescription("float", x => BitConverter.ToSingle(x, 0), 4) },
             };
 
-
+        [JsonProperty]
         public byte Access
         {
             get; private set;
         }
 
+        [JsonProperty]
         public string Name
         {
             get; private set;
         }
 
+        [JsonProperty]
         public string Group
         {
             get; private set;
         }
 
+        [JsonProperty]
         public string CType
         {
             get; private set;
         }
 
+        [JsonProperty]
         public ushort Identifier
         {
             get; private set;

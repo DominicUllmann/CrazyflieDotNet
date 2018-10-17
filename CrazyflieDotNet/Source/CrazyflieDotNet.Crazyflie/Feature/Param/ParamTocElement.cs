@@ -1,5 +1,6 @@
 ﻿using CrazyflieDotNet.Crazyflie.Feature.Common;
 using CrazyflieDotNet.Crazyflie.Feature.Param;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -36,26 +37,31 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Parameter
             Readwrite,
         }
 
+        [JsonProperty]
         public AccessLevel Access
         {
             get; private set;
         }
 
+        [JsonProperty]
         public string CType
         {
             get; private set;
         }
 
+        [JsonProperty]
         public ushort Identifier
         {
             get; private set;
         }
 
+        [JsonProperty]
         public string Name
         {
             get; private set;
         }
 
+        [JsonProperty]
         public string Group
         {
             get; private set;

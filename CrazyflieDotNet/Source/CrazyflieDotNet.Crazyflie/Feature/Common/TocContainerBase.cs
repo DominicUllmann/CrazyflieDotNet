@@ -1,5 +1,6 @@
 ﻿using CrazyflieDotNet.CrazyMessaging;
 using System;
+using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,16 +11,20 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
         protected bool _useV2Protocol;
         protected ICrtpCommunicator _communicator;
 
-        private TocCache<T> _tocCache = new TocCache<T>();
+        private TocCache<T> _tocCache;
 
         public Toc<T> CurrentToc { get; private set; } = null;
         private ManualResetEvent _loadTocDone = new ManualResetEvent(false);
         private TocFetcher<T> _tocFetcher;
+        private DirectoryInfo _cacheDirectory;
 
-        protected TocContainerBase(ICrtpCommunicator communicator, bool useV2Protocol, byte port)
+        protected TocContainerBase(ICrtpCommunicator communicator, bool useV2Protocol, byte port,
+            DirectoryInfo cacheDirectory)
         {
             _useV2Protocol = useV2Protocol;
-            _communicator = communicator;            
+            _communicator = communicator;
+            _cacheDirectory = cacheDirectory;
+            _tocCache = new TocCache<T>(_cacheDirectory);
 
             _tocFetcher = new TocFetcher<T>(_communicator, _tocCache,
                 port, _useV2Protocol);

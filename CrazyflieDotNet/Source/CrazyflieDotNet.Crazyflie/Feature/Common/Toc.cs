@@ -1,7 +1,9 @@
 ﻿using log4net;
+using Newtonsoft.Json;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 
 namespace CrazyflieDotNet.Crazyflie.Feature.Common
@@ -130,6 +132,25 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
         IEnumerator IEnumerable.GetEnumerator()
         {
             return GetEnumerator();
+        }
+
+        public static Toc<T> DeserializeFromFile(FileInfo file)
+        {
+            var asList = JsonConvert.DeserializeObject<List<T>>(
+                            File.ReadAllText(file.FullName));
+            var fileResult = new Toc<T>();
+            foreach (var element in asList)
+            {
+                fileResult.AddElement(element);
+            }
+            return fileResult;
+        }
+
+        public void SerializeToFile(FileInfo file)
+        {
+            var serialized = JsonConvert.SerializeObject(this);
+            File.WriteAllText(file.FullName,
+                serialized);
         }
     }
 }
