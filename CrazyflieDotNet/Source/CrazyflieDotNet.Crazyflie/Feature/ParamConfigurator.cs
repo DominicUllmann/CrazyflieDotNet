@@ -9,6 +9,7 @@ using CrazyflieDotNet.Crazyflie.Feature.Param;
 using CrazyflieDotNet.Crazyflie.Feature.Parameter;
 using CrazyflieDotNet.CrazyMessaging;
 using CrazyflieDotNet.CrazyMessaging.Protocol;
+using log4net;
 
 namespace CrazyflieDotNet.Crazyflie.Feature
 {
@@ -24,6 +25,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     /// </summary>
     internal class ParamConfigurator : TocContainerBase<ParamTocElement>, ICrazyflieParamConfigurator
     {
+
+        private static readonly ILog _log = LogManager.GetLogger(typeof(ParamConfigurator));
 
         private class LoadParamRequest : IDisposable
         {
@@ -100,17 +103,22 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             LoadParamRequest toRemove = null;
             lock (_openLoadRequestLock)
             {
+                _log.Debug("check for parameter load request for id: " + e.Id);
                 foreach (var request in _openLoadRequests)
                 {
                     if (request.CheckRequestFullfilledWithNotification(e.Id))
                     {
                         toRemove = request;
+                        _log.Info("fullfilled parameter load request for id: " + toRemove.Id);
+                        break;
                     }
-                    break;
                 }
                 if (toRemove != null)
                 {
                     _openLoadRequests.Remove(toRemove);
+                } else
+                {
+                    _log.Warn($"found not matching request for answer for id: {e.Id}; number of requests open: {_openLoadRequests.Count}");
                 }
             }            
         }
@@ -185,14 +193,17 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             }
 
             var request = new LoadParamRequest(id.Value);
-            _openLoadRequests.Add(request);
+            lock (_openLoadRequestLock)
+            {
+                _openLoadRequests.Add(request);
+            }
 
             var task = new Task<object>(() =>
             {
                 _paramSynchronizer.RequestLoadParamValue(id.Value);
                 try
                 {
-                    if (!request.Wait(5000))
+                    if (!request.Wait(10000))
                     {
                         throw new ApplicationException($"failed to update parameter value {completeName} (timeout)");
                     }
