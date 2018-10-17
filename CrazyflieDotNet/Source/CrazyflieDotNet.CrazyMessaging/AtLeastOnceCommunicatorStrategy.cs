@@ -75,12 +75,12 @@ namespace CrazyflieDotNet.CrazyMessaging
                 {                    
                     // resend with fire and forget semantic as expectation already registered.
                     _communicator.SendMessage(request.Request);
-                    _log.Info($"retrying message to port {request.Request.Port}");
+                    _log.Info($"retrying message to port {request.Request.Port} / channel {request.Request.Channel}");
                 }
                 else
                 {
                     // already removed, so no need to retry.
-                    _log.Info($"timout with no matching request to port {request.Request.Port}. Ignore.");
+                    _log.Info($"timout with no matching request to port {request.Request.Port} / channel {request.Request.Channel}. Ignore.");
                 }
             }
         }
@@ -105,7 +105,7 @@ namespace CrazyflieDotNet.CrazyMessaging
                     // stop retry timer.
                     foundRequest.Dispose();
                     _registeredMessageExceptions.Remove(foundRequest);
-                    _log.Debug($"received expected message for port {foundRequest.Request.Port}");
+                    _log.Debug($"received expected message for port {foundRequest.Request.Port} / channel: {foundRequest.Request.Channel}");
                 }
             }
         }
