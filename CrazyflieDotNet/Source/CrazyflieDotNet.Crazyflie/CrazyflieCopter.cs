@@ -77,10 +77,15 @@ namespace CrazyflieDotNet.Crazyflie
             }
         }
 
-        public void Connect()
+        /// <summary>
+        /// Connect to the first or matching copter.
+        /// </summary>
+        /// <param name="channelToFilterFor">The channel the copter is using.</param>
+        /// <param name="dataRateToFilterfor">The data rate it communicates with.</param>
+        public void Connect(RadioChannel? channelToFilterFor = null, RadioDataRate? dataRateToFilterfor = null)
         {
             _crazyradioDriver = SetupCrazyflieDriver();
-            ConnectToCrazyflie();
+            ConnectToCrazyflie(channelToFilterFor, dataRateToFilterfor);
             _communicator = new CrtpCommunicator(_crazyradioDriver);
             _communicator.Start();
             _platformService = new PlatformService(_communicator);
@@ -114,21 +119,40 @@ namespace CrazyflieDotNet.Crazyflie
             }
         }
 
-        private void ConnectToCrazyflie()
+        private void ConnectToCrazyflie(RadioChannel? channelToFilterFor, RadioDataRate? dataRateToFilterfor)
         {
             try
             {
                 var scanResults = _crazyradioDriver.ScanChannels();
-                if (scanResults.Any())
-                {
-                    // Use first online Crazyflie quadcopter found
-                    var firstScanResult = scanResults.First();
+                // scanresults collection contains a list per dataRate
 
+                if (dataRateToFilterfor != null)
+                {
+                    scanResults = scanResults.Where(x => x.DataRate == dataRateToFilterfor.Value);
+                }
+
+                RadioChannel? selectedChannel = null;
+                ScanChannelsResult selectedRate = null;
+                if (scanResults.Any()) 
+                {                    
+                    selectedRate = scanResults.First(); // take the first or first matching.
+                    
+                    // Use first or matching online Crazyflie quadcopter found
+                    if (channelToFilterFor != null)
+                    {
+                        selectedChannel = selectedRate.Channels.FirstOrDefault(x => x == channelToFilterFor.Value);
+                    }
+                    else
+                    {
+                        selectedChannel = selectedRate.Channels.First();
+                    }                                                            
+                }
+                if (selectedRate != null && selectedChannel != null)
+                {
                     // Set CrazyradioDriver's DataRate and Channel to that of online Crazyflie
-                    var dataRateWithCrazyflie = firstScanResult.DataRate;
-                    var channelWithCrazyflie = firstScanResult.Channels.First();
-                    _crazyradioDriver.DataRate = dataRateWithCrazyflie;
-                    _crazyradioDriver.Channel = channelWithCrazyflie;
+                    _crazyradioDriver.DataRate = selectedRate.DataRate;
+                    _crazyradioDriver.Channel = selectedChannel;
+                    _log.Info($"found Crazyflie quadcopter with {selectedRate.DataRate} / {selectedChannel} ");
                 }
                 else
                 {
