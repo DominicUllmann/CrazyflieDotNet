@@ -3,10 +3,10 @@
     public class Position
     {
 
-        private float X { get; }
-        private float Y { get; }
+        public float X { get; }
+        public float Y { get; }
 
-        private float Z { get; }
+        public float Z { get; }
 
         public Position(float x, float y, float z)
         {
