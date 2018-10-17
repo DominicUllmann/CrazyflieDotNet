@@ -125,7 +125,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// <summary>
         /// <see cref="ICrazyflieLogger.CreateEmptyLogConfigEntry"/>
         /// </summary>        
-        public LogConfig CreateEmptyLogConfigEntry(string name, byte period)
+        public LogConfig CreateEmptyLogConfigEntry(string name, ushort period)
         {
             return new LogConfig(_communicator, this, name, period);
         }
@@ -135,7 +135,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// </summary>        
         public void StartConfig(LogConfig config)
         {
-            config.Start();
+            config.StartEnsureAdded();
         }
 
         public void StopConfig(LogConfig config)
@@ -186,9 +186,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 {
                     EnsureVariableInToc(config, variable.Name);
                 }
-            }
-
-            if (size <= MAX_LOG_DATA_PACKET_SIZE && (config.Period > 0 && config.Period < 0xFF))
+            }            
+            if (size <= MAX_LOG_DATA_PACKET_SIZE)
             {
                 config.Valid = true;
                 config.UseV2 = _useV2Protocol;
@@ -202,7 +201,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             {
                 config.Valid = false;
                 throw new ArgumentException(
-                    "The log configuration is too large or has an invalid parameter");
+                    "The log configuration is too large");
             }
         }
 
@@ -281,16 +280,9 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 {
                     if (!config.Added)
                     {
-                        _log.Debug($"Have successfully added id={id}");
-                        var msg = new CrtpMessage((byte)CrtpPort.LOGGING,
-                                                  (byte)LogChannel.CHAN_SETTINGS,
-                                                  new byte[] {
-                                                      (byte)LogConfigCommand.CMD_START_LOGGING, id,
-                                                      config.Period
-                                                    }
-                                                  );                        
-                        _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
+                        _log.Debug($"Have successfully added id={id}");                        
                         config.Added = true;
+                        config.StartAlreadyAdded();
                     }
                 }
                 else

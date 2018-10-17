@@ -12,8 +12,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// To enable logging for this entry, call <see cref="AddConfig"/> afterwards.
         /// </summary>
         /// <param name="name">the name of the log entry</param>
-        /// <param name="period">the send interval in ms.</param>
-        LogConfig CreateEmptyLogConfigEntry(string name, byte period);
+        /// <param name="period">the send interval in ms (max 2550ms).</param>
+        LogConfig CreateEmptyLogConfigEntry(string name, ushort period);
 
         /// <summary>
         /// Add a log configuration to the logging framework.

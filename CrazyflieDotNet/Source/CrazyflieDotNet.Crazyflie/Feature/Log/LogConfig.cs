@@ -45,11 +45,15 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         private readonly IList<LogVariable> _logVariables = new List<LogVariable>();
         private readonly IList<string> _defaultFetchAs = new List<string>();
 
-        internal LogConfig(ICrtpCommunicator communicator, ITocContainer<LogTocElement> tocContainer, string name, byte period)
+        internal LogConfig(ICrtpCommunicator communicator, ITocContainer<LogTocElement> tocContainer, string name, ushort periodInMs)
         {
             _communicator = communicator;
             _tocContainer = tocContainer;
-            Period = period;
+            var periodToSend = periodInMs / 10;
+            if (!(periodToSend > 0 && periodToSend < 0xFF)) {
+                throw new ArgumentException("periodInMs must be < 2550 ms.");
+            }
+            PeriodInMs = periodInMs;
             Name = name;
         }
 
@@ -95,7 +99,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
 
         public byte ErrorNumber { get; internal set; }
         public bool Added { get; internal set; }
-        public byte Period { get; internal set; }
+        public ushort PeriodInMs { get; internal set; }
         public bool Valid { get; internal set; }
 
         /// <summary>
@@ -218,7 +222,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
         /// <summary>
         /// Start the logging for this entry
         /// </summary>
-        internal void Start()
+        internal void StartEnsureAdded()
         {
             if (!Added)
             {
@@ -228,11 +232,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Log
             else
             {
                 _log.Debug($"Block already registered, starting logging for id={Identifier}");
-                var msg = new CrtpMessage((byte) CrtpPort.LOGGING,
-                                          (byte) Logger.LogChannel.CHAN_SETTINGS,
-                                          new byte[] {(byte) Logger.LogConfigCommand.CMD_START_LOGGING, Identifier.Value, Period});
-                _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
+                StartAlreadyAdded();
             }
+        }
+
+        internal void StartAlreadyAdded()
+        {
+            var msg = new CrtpMessage((byte)CrtpPort.LOGGING,
+                                          (byte)Logger.LogChannel.CHAN_SETTINGS,
+                                          new byte[] { (byte)Logger.LogConfigCommand.CMD_START_LOGGING, Identifier.Value, (byte)((PeriodInMs / 10) & 0xFF) });
+            _communicator.SendMessageExcpectAnswer(msg, msg.Data.Take(2).ToArray());
         }
 
         /// <summary>

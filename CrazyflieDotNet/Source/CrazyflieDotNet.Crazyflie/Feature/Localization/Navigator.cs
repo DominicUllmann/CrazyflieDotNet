@@ -58,7 +58,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
         /// </summary>
         public event PositionUpdateEventHandler PositionUpdate;
 
-        public void StartTracking(byte updatePeriodInMs)
+        public void StartTracking(ushort updatePeriodInMs)
         {
             if (_isRunning)
             {
