@@ -183,28 +183,36 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
         /// </summary>
         private void ParamMessageReceived(CrtpMessage message)
         {
+            _log.Debug($"received parameter value result message for channel {message.Channel}");
             if (message.Channel == (byte)ParamConfigurator.ParamChannel.READ_CHANNEL ||
                 message.Channel == (byte)ParamConfigurator.ParamChannel.WRITE_CHANNEL)
             {
                 ParameterReceivedEventArgs notificationReceived = null;
                 lock (_lock)
-                {
+                {                    
+                    ushort forId = (_useV2 ? BitConverter.ToUInt16(message.Data.Take(2).ToArray(), 0) : message.Data.First());
+                    _log.Debug($"Check for existing requests for received parameter value for id {forId}.");
                     if (_requests.Any())
-                    {
-                        ushort forId = (_useV2 ? BitConverter.ToUInt16(message.Data.Take(2).ToArray(), 0) : message.Data.First());
+                    {                        
                         var request = _requests.Peek();
-                        if (request.ForParamId == forId)
+                        if (request.ForParamId == forId && request.RequestMessage.Channel == message.Channel)
                         {
                             // remove now from the queue and notify processing thread to take next one.
+                            _log.Debug($"Dequeue current parameter request as fullfilled. Id: {forId}, channel: {message.Channel}");
                             _requests.Dequeue();
                             _waitForResponse.Set();
                         } 
 
                         if (message.Channel == (byte)ParamConfigurator.ParamChannel.READ_CHANNEL)
                         {
+                            _log.Info($"received parameter value result for param {forId}");
                             // for version 2, it seems that we need to skip 3 bytes (2 for id, 1 for something else).
                             notificationReceived = new ParameterReceivedEventArgs(forId, message.Data.Skip(_useV2 ? 3 : 1).ToArray());
                         }
+                    }
+                    else
+                    {
+                        _log.Warn($"no macthing request found for parameter {forId}");
                     }
                 }
                 if (notificationReceived != null)
