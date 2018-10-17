@@ -28,11 +28,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private static readonly ILog _log = LogManager.GetLogger(typeof(ParamConfigurator));
 
-        private class LoadParamRequest : IDisposable
+        private class ParamRequest : IDisposable
         {
             private ManualResetEvent _waitHandle = new ManualResetEvent(false);
 
-            internal LoadParamRequest(ushort id)
+            internal ParamRequest(ushort id)
             {
                 Id = id;
             }
@@ -73,8 +73,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         private readonly ParameterSynchronizer _paramSynchronizer;
         private readonly IDictionary<ushort, object> _paramValues = new Dictionary<ushort, object>();
         private bool _isUpdated;
-        private readonly IList<LoadParamRequest> _openLoadRequests = new List<LoadParamRequest>();
+        private readonly IList<ParamRequest> _openLoadRequests = new List<ParamRequest>();
         private readonly object _openLoadRequestLock = new object();
+        private readonly IList<ParamRequest> _openStoreRequests = new List<ParamRequest>();
+        private readonly object _openStoreRequestLock = new object();
+
 
         public event AllParamsUpdatedEventHandler AllParametersUpdated;
 
@@ -87,6 +90,12 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             _paramSynchronizer = new ParameterSynchronizer(communicator, useV2Protocol);
             _paramSynchronizer.StartProcessing();
             _paramSynchronizer.ParameterReceived += ParameterReceived;
+            _paramSynchronizer.ParameterStored += ParameterStored;
+        }
+
+        private void ParameterStored(object sender, ParameterStoredEventArgs e)
+        {
+            UpdateOpenRequests(_openStoreRequests, _openStoreRequestLock, e.Id, "store");
         }
 
         private void ParameterReceived(object sender, ParameterReceivedEventArgs e)
@@ -100,27 +109,33 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 _isUpdated = true;
                 AllParametersUpdated?.Invoke(this, new AllParamsUpdatedEventArgs());
             }
-            LoadParamRequest toRemove = null;
-            lock (_openLoadRequestLock)
+            UpdateOpenRequests(_openLoadRequests, _openLoadRequestLock, e.Id, "load");
+        }
+
+        private void UpdateOpenRequests(IList<ParamRequest> requests, object lockObject, ushort paramId, string operationName)
+        {
+            ParamRequest toRemove = null;
+            lock (lockObject)
             {
-                _log.Debug("check for parameter load request for id: " + e.Id);
-                foreach (var request in _openLoadRequests)
+                _log.Debug($"check for parameter {operationName} request for id {paramId}");
+                foreach (var request in requests)
                 {
-                    if (request.CheckRequestFullfilledWithNotification(e.Id))
+                    if (request.CheckRequestFullfilledWithNotification(paramId))
                     {
                         toRemove = request;
-                        _log.Info("fullfilled parameter load request for id: " + toRemove.Id);
+                        _log.Info($"fullfilled parameter {operationName} request for id {toRemove.Id}");
                         break;
                     }
                 }
                 if (toRemove != null)
                 {
-                    _openLoadRequests.Remove(toRemove);
-                } else
-                {
-                    _log.Warn($"found not matching request for answer for id: {e.Id}; number of requests open: {_openLoadRequests.Count}");
+                    requests.Remove(toRemove);
                 }
-            }            
+                else
+                {
+                    _log.Warn($"found not matching {operationName} request for answer for id: {paramId}; number of requests open: {requests.Count}");
+                }
+            }
         }
 
         protected override void StartLoadToc()
@@ -192,7 +207,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 throw new ArgumentException($"{completeName} not found in toc", nameof(completeName));
             }
 
-            var request = new LoadParamRequest(id.Value);
+            var request = new ParamRequest(id.Value);
             lock (_openLoadRequestLock)
             {
                 _openLoadRequests.Add(request);
@@ -221,7 +236,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// <summary>
         /// <see cref="ICrazyflieParamConfigurator.SetValue(string, object)"/>
         /// </summary>
-        public void SetValue(string completeName, object value)
+        public Task SetValue(string completeName, object value)
         {
             EnsureToc();
             var id = CurrentToc.GetElementId(completeName);
@@ -237,7 +252,31 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
             var element = CurrentToc.GetElementById(id.Value);
             var packId = ParamTocElement.GetIdFromCString(element.CType);
-            _paramSynchronizer.StoreParamValue(id.Value, ParamTocElement.Pack(packId, value));
+            var content = ParamTocElement.Pack(packId, value);
+
+            var request = new ParamRequest(id.Value);
+            lock (_openStoreRequestLock)
+            {
+                _openStoreRequests.Add(request);
+            }
+
+            var task = new Task(() =>
+            {
+                _paramSynchronizer.StoreParamValue(id.Value, content);
+                try
+                {
+                    if (!request.Wait(10000))
+                    {
+                        throw new ApplicationException($"failed to store new parameter value {completeName} (timeout)");
+                    }                    
+                }
+                finally
+                {
+                    request.Dispose();
+                }
+            });
+            task.Start();
+            return task;
         }
 
         /// <summary>

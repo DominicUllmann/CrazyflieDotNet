@@ -21,7 +21,18 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
         }
     }
 
+    internal class ParameterStoredEventArgs
+    {
+        public ushort Id { get; }        
+
+        public ParameterStoredEventArgs(ushort id)
+        {
+            Id = id;
+        }
+    }
+
     internal delegate void ParameterReceivedEventHandler(object sender, ParameterReceivedEventArgs e);
+    internal delegate void ParameterStoredEventHandler(object sender, ParameterStoredEventArgs e);
 
     /// <summary>
     /// The parameter store is an abstraction of the stored parameters on the crazyflie.
@@ -57,6 +68,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
         private ManualResetEvent _waitForContent = new ManualResetEvent(false);
         private ManualResetEvent _waitForResponse = new ManualResetEvent(false);
         public event ParameterReceivedEventHandler ParameterReceived;
+        public event ParameterStoredEventHandler ParameterStored;
 
         internal ParameterSynchronizer(ICrtpCommunicator communicator, bool useV2)
         {
@@ -188,6 +200,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
                 message.Channel == (byte)ParamConfigurator.ParamChannel.WRITE_CHANNEL)
             {
                 ParameterReceivedEventArgs notificationReceived = null;
+                ParameterStoredEventArgs notificationStored = null;
                 lock (_lock)
                 {                    
                     ushort forId = (_useV2 ? BitConverter.ToUInt16(message.Data.Take(2).ToArray(), 0) : message.Data.First());
@@ -209,6 +222,11 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
                             // for version 2, it seems that we need to skip 3 bytes (2 for id, 1 for something else).
                             notificationReceived = new ParameterReceivedEventArgs(forId, message.Data.Skip(_useV2 ? 3 : 1).ToArray());
                         }
+                        if (message.Channel == (byte)ParamConfigurator.ParamChannel.WRITE_CHANNEL)
+                        {
+                            _log.Info($"stored parameter value result for param {forId}");                            
+                            notificationStored = new ParameterStoredEventArgs(forId);
+                        }
                     }
                     else
                     {
@@ -218,6 +236,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
                 if (notificationReceived != null)
                 {
                     ParameterReceived?.Invoke(this, notificationReceived);
+                }
+                if (notificationStored != null)
+                {
+                    ParameterStored?.Invoke(this, notificationStored);
                 }
             }
         }
