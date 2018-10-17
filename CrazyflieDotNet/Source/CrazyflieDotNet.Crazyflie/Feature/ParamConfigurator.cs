@@ -218,6 +218,12 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             {
                 throw new ArgumentException($"{completeName} not found in toc", nameof(completeName));
             }
+
+            if (CurrentToc.GetElementById(id.Value).Access != ParamTocElement.AccessLevel.Readwrite)
+            {
+                throw new InvalidOperationException("unable to set a readonly parameter: " + completeName);
+            }
+
             var element = CurrentToc.GetElementById(id.Value);
             var packId = ParamTocElement.GetIdFromCString(element.CType);
             _paramSynchronizer.StoreParamValue(id.Value, ParamTocElement.Pack(packId, value));
