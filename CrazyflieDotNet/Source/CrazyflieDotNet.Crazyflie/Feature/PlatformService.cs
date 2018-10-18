@@ -58,9 +58,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         public Task<int> FetchPlatformInformations()
         {
             ProtocolVersion = -1;
-            var task = new Task<int>(() => RequestProtocolVersion());
-            task.Start();
-            return task;
+            return Task.Run(() => RequestProtocolVersion());
         }
 
         private int RequestProtocolVersion()

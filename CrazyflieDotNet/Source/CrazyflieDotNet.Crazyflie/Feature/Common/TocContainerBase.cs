@@ -35,9 +35,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Common
         {
             CurrentToc = null;
             _loadTocDone.Reset();
-            var task = new Task<Toc<T>>(() => LoadToc());
-            task.Start();
-            return task;
+            return Task.Run(() => LoadToc());
         }
 
         private Toc<T> LoadToc()

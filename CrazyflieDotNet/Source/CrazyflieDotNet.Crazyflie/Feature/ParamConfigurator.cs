@@ -213,7 +213,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 _openLoadRequests.Add(request);
             }
 
-            var task = new Task<object>(() =>
+            return Task.Run(() =>
             {
                 _paramSynchronizer.RequestLoadParamValue(id.Value);
                 try
@@ -228,9 +228,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 {
                     request.Dispose();
                 }
-            });
-            task.Start();
-            return task;            
+            });                        
         }
 
         /// <summary>
@@ -260,7 +258,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                 _openStoreRequests.Add(request);
             }
 
-            var task = new Task(() =>
+            return Task.Run(() =>
             {
                 _paramSynchronizer.StoreParamValue(id.Value, content);
                 try
@@ -275,8 +273,6 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                     request.Dispose();
                 }
             });
-            task.Start();
-            return task;
         }
 
         /// <summary>
