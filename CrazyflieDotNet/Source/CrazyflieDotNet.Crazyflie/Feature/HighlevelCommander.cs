@@ -120,8 +120,16 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             Send(builder);
         }
 
+        public void Stop(byte groupMask = 0)
+        {
+            byte command = (byte)HighlevelCommands.COMMAND_STOP;
 
+            var builder = new MessageBuilder(
+                (byte)CrtpPort.SETPOINT_HL, (byte)CrtpChannel.Channel0);
+            builder.Add(command);
+            builder.Add(groupMask);
 
-
-}
+            Send(builder);
+        }
+    }
 }

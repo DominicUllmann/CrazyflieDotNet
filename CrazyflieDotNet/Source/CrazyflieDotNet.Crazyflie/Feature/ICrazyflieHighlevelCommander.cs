@@ -54,5 +54,9 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// <param name="groupMask">mask for which CFs this should apply to</param>
         void GoTo(float x, float y, float z, float yaw, float durationInSec, bool relative = false, byte groupMask = HighlevelCommander.ALL_GROUPS);
 
+        /// <summary>
+        /// Stops the crazyfly.
+        /// </summary>
+        void Stop(byte groupMask = HighlevelCommander.ALL_GROUPS);
     }
 }
