@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using CrazyflieDotNet.Crazyflie.Feature.Log;
+using log4net;
 
 namespace CrazyflieDotNet.Crazyflie.Feature.Localization
 {
@@ -24,6 +26,8 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
     /// </summary>
     public class Navigator
     {
+        private static readonly ILog _log = LogManager.GetLogger(typeof(Navigator));
+
         private CrazyflieCopter _copter;
 
         private readonly List<float> _historyVarianceX = new List<float>();
@@ -89,7 +93,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             _isRunning = true;
         }
 
-        public void Stop()
+        public Task Stop()
         {
             if (_isRunning)
             {
@@ -98,69 +102,99 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             }
             _isRunning = false;
             _navLogConfig = null;
+            _copter.HighLevelCommander.Stop();
+            return _copter.HighLevelCommander.Disable();
         }
 
-        public void Takeoff(float height, float velocity = 0.2f)
+        public Task Takeoff(float height, float velocity = 0.2f)
         {
             if (_isFlying)
             {
                 throw new InvalidOperationException("already flying");
             }
-            _copter.HighLevelCommander.Enable().Wait();
-            _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1).Wait();
-            Thread.Sleep(100);
-            _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0).Wait();
-            Thread.Sleep(1000);
-
-            _isFlying = true;
-
             var duration_s = height / velocity;
-            _copter.HighLevelCommander.Takeoff(0.5f, duration_s);
-            Thread.Sleep(TimeSpan.FromSeconds(duration_s));
+
+            return _copter.HighLevelCommander.Enable().
+                ContinueWith((state) =>
+                {
+                    _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1);
+                }).
+                ContinueWith((state) => Task.Delay(100)).
+                ContinueWith((state) =>
+                {
+                    _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0);
+                }).
+                ContinueWith((state) => Task.Delay(1000)).
+                ContinueWith((state) =>
+                {
+                    _copter.HighLevelCommander.Takeoff(0.5f, duration_s);
+                    _isFlying = true;
+                }).
+                ContinueWith((state) =>
+                    {
+                        Task.Delay(TimeSpan.FromSeconds(duration_s));
+                        _log.Info("Takeoff complete");
+                    });            
         }
 
-        public void Land(float height = 0, float velocity = 0.2f)
+        public Task Land(float height = 0, float velocity = 0.2f)
         {
             if (!_isFlying)
             {
                 throw new InvalidOperationException("start first");                
             }
+            var positionn = CurrentPosition;
 
-            var duration_s = (CurrentPosition.Z - height) / velocity;
+            var duration_s = (positionn.Z - height) / velocity;
+            _log.Info($"Landing from {positionn.X} {positionn.Y} {positionn.Z} in {duration_s}");
+
             _copter.HighLevelCommander.Land(height, duration_s);
-            Thread.Sleep(TimeSpan.FromSeconds(duration_s));
 
-            _copter.HighLevelCommander.Disable().Wait();
+            return Task.Delay(
+                TimeSpan.FromSeconds(duration_s + 1)) // add 1 second in addition to ensure it had time to settle down.
+            .ContinueWith((state) =>
+            {
+                _log.Info("Land complete");
+            });
         }
 
         private float CalculateDurationToPositon(float x, float y, float z, float velocity)
         {
-            var dx = x - CurrentPosition.X;
-            var dy = y - CurrentPosition.Y;
-            var dz = z - CurrentPosition.Z;
+            var position = CurrentPosition;
+            var dx = x - position.X;
+            var dy = y - position.Y;
+            var dz = z - position.Z;
             var distance = Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
             var duration_s = (float)distance / velocity;
             return duration_s;
         }
 
-        public void NavigateTo(float x, float y, float z, float velocity = 0.2f, float variance = 0.05f)
+        public Task NavigateTo(float x, float y, float z, float velocity = 0.2f, float variance = 0.05f)
         {
+            _log.Info($"fly to {x} {y} {z}");
             var duration_s = CalculateDurationToPositon(x, y, z, velocity);
             _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
-            Thread.Sleep(TimeSpan.FromSeconds(duration_s));
-
-            var i = 0;
-            while (!(Math.Abs(CurrentPosition.X - x) < variance &&
-                Math.Abs(CurrentPosition.Y - y) < variance &&
-                Math.Abs(CurrentPosition.Z - z) < variance) && i < 4)
-            {
-                duration_s = CalculateDurationToPositon(x, y, z, velocity);
-                Thread.Sleep(TimeSpan.FromSeconds(duration_s));
-
-                _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
-                i++;
-            }
+            return Task.Delay(TimeSpan.FromSeconds(duration_s)).ContinueWith(
+                (state) =>
+                {
+                    var position = CurrentPosition;
+                    if (!(Math.Abs(position.X - x) < variance &&
+                          Math.Abs(position.Y - y) < variance &&
+                          Math.Abs(position.Z - z) < variance))
+                    {
+                        duration_s = CalculateDurationToPositon(x, y, z, velocity);
+                        _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
+                        return Task.Delay(TimeSpan.FromSeconds(duration_s));
+                    }
+                    else
+                    {
+                        return Task.CompletedTask;
+                    }
+                }).ContinueWith((state) =>
+                {
+                    _log.Info($"navigation to {x} {y} {z} complete.");
+                });
         }
 
         /// <summary>
