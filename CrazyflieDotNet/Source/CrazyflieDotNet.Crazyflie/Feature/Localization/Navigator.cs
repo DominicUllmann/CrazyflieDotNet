@@ -24,7 +24,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
     /// </summary>
     public class Navigator
     {
-        private ICrazyflieLogger _logger;
+        private CrazyflieCopter _copter;
 
         private readonly List<float> _historyVarianceX = new List<float>();
         private readonly List<float> _historyVarianceY = new List<float>();
@@ -34,17 +34,18 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
         public float VarianceY { get; private set; }
         public float VarianceZ { get; private set; }
 
-        private ManualResetEventSlim _waitForVarianceUpdate = new ManualResetEventSlim(false);
+        private ManualResetEvent _waitForVarianceUpdate = new ManualResetEvent(false);
         private ushort _updatePeriodInMs;
 
         private bool _isRunning;
+        private bool _isFlying;
         private bool _firstValueTracked;
         private LogConfig _navLogConfig;
 
 
-        public Navigator(ICrazyflieLogger logger)
+        public Navigator(CrazyflieCopter copter)
         {
-            _logger = logger;
+            _copter = copter;
         }
 
         public Position CurrentPosition
@@ -58,13 +59,13 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
         /// </summary>
         public event PositionUpdateEventHandler PositionUpdate;
 
-        public void StartTracking(ushort updatePeriodInMs)
+        public void Start(ushort updatePeriodInMs)
         {
             if (_isRunning)
             {
                 throw new InvalidOperationException("already running");
             }
-            if (!_logger.IsLogVariableKnown("kalman.stateX"))
+            if (!_copter.Logger.IsLogVariableKnown("kalman.stateX"))
             {
                 throw new InvalidOperationException("require kalman to be present in the firmware of the crazyflie");
             }
@@ -72,7 +73,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             _firstValueTracked = false;
             InitVarianceHistory();
 
-            _navLogConfig = _logger.CreateEmptyLogConfigEntry("Kalman Variance", updatePeriodInMs);
+            _navLogConfig = _copter.Logger.CreateEmptyLogConfigEntry("Kalman Variance", updatePeriodInMs);
             // current estimated position
             _navLogConfig.AddVariable("kalman.stateX", "float");
             _navLogConfig.AddVariable("kalman.stateY", "float");
@@ -81,22 +82,115 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             _navLogConfig.AddVariable("kalman.varPX", "float");
             _navLogConfig.AddVariable("kalman.varPY", "float");
             _navLogConfig.AddVariable("kalman.varPZ", "float");
-            _navLogConfig.LogDataReceived += Config_LogKalmanDataReceived;            
-            _logger.AddConfig(_navLogConfig);
-            _logger.StartConfig(_navLogConfig);
+            _navLogConfig.LogDataReceived += Config_LogKalmanDataReceived;
+            _copter.Logger.AddConfig(_navLogConfig);
+            _copter.Logger.StartConfig(_navLogConfig);
 
             _isRunning = true;
         }
 
-        public void StopTracking()
+        public void Stop()
         {
             if (_isRunning)
             {
-                _logger.StopConfig(_navLogConfig);
-                _logger.DeleteConfig(_navLogConfig);
+                _copter.Logger.StopConfig(_navLogConfig);
+                _copter.Logger.DeleteConfig(_navLogConfig);
             }
             _isRunning = false;
             _navLogConfig = null;
+        }
+
+        public void Takeoff(float height, float velocity = 0.2f)
+        {
+            if (_isFlying)
+            {
+                throw new InvalidOperationException("already flying");
+            }
+            _copter.HighLevelCommander.Enable().Wait();
+            _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1).Wait();
+            Thread.Sleep(100);
+            _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0).Wait();
+            Thread.Sleep(1000);
+
+            _isFlying = true;
+
+            var duration_s = height / velocity;
+            _copter.HighLevelCommander.Takeoff(0.5f, duration_s);
+            Thread.Sleep(TimeSpan.FromSeconds(duration_s));
+        }
+
+        public void Land(float height = 0, float velocity = 0.2f)
+        {
+            if (!_isFlying)
+            {
+                throw new InvalidOperationException("start first");                
+            }
+
+            var duration_s = (CurrentPosition.Z - height) / velocity;
+            _copter.HighLevelCommander.Land(height, duration_s);
+            Thread.Sleep(TimeSpan.FromSeconds(duration_s));
+
+            _copter.HighLevelCommander.Disable().Wait();
+        }
+
+        private float CalculateDurationToPositon(float x, float y, float z, float velocity)
+        {
+            var dx = x - CurrentPosition.X;
+            var dy = y - CurrentPosition.Y;
+            var dz = z - CurrentPosition.Z;
+            var distance = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
+            var duration_s = (float)distance / velocity;
+            return duration_s;
+        }
+
+        public void NavigateTo(float x, float y, float z, float velocity = 0.2f, float variance = 0.05f)
+        {
+            var duration_s = CalculateDurationToPositon(x, y, z, velocity);
+            _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
+            Thread.Sleep(TimeSpan.FromSeconds(duration_s));
+
+            var i = 0;
+            while (!(Math.Abs(CurrentPosition.X - x) < variance &&
+                Math.Abs(CurrentPosition.Y - y) < variance &&
+                Math.Abs(CurrentPosition.Z - z) < variance) && i < 4)
+            {
+                duration_s = CalculateDurationToPositon(x, y, z, velocity);
+                Thread.Sleep(TimeSpan.FromSeconds(duration_s));
+
+                _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
+                i++;
+            }
+        }
+
+        /// <summary>
+        /// This navigates to the position specified and returns as soon as
+        /// it has reached that position (as observed by the navigation system).
+        /// </summary>
+        /// <param name="x"></param>
+        /// <param name="y"></param>
+        /// <param name="z"></param>
+        public bool NavigateTo(float x, float y, float z, TimeSpan timeout, float variance)
+        {
+            DateTime startTime = DateTime.Now;
+            while (true)
+            {
+                _copter.Commander.SendPositionSetpoint(x, y, z, 0);
+                if (startTime + timeout < DateTime.Now)
+                {
+                    return false; 
+                }
+                if (Math.Abs(CurrentPosition.X - x) < variance &&
+                    Math.Abs(CurrentPosition.Y - y) < variance &&
+                    Math.Abs(CurrentPosition.Z - z) < variance)
+                {
+                    break;
+                }
+                // ensure that we send a command at least every 250 ms and at most every 100ms
+                // optimally, we wait for 3 updates of position until we send again.
+                Thread.Sleep(Math.Max(100, Math.Min(400, 3 * _updatePeriodInMs)));
+            }
+            return true;
         }
 
         private void InitVarianceHistory()
@@ -122,7 +216,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             while (true)
             {
                 // wait at most for next update; afterwards check if timeout has been reached.
-                _waitForVarianceUpdate.Wait(_updatePeriodInMs + 20);
+                _waitForVarianceUpdate.WaitOne(_updatePeriodInMs + 20);
                 if (!_firstValueTracked)
                 {
                     continue;
