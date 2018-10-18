@@ -110,7 +110,7 @@ namespace CrazyflieDotNet.Crazyflie
             paramTask.Wait();
             logTaks.Wait();
             _commander = new Commander(_communicator, false);
-            _highlevelCommander = new HighlevelCommander(_communicator);
+            _highlevelCommander = new HighlevelCommander(_communicator, _paramConfigurator);
         }
 
         public void Disconnect()

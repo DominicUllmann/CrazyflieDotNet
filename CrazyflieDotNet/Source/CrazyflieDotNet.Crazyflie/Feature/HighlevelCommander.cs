@@ -1,8 +1,7 @@
 ﻿using CrazyflieDotNet.CrazyMessaging;
 using CrazyflieDotNet.CrazyMessaging.Protocol;
 using System;
-using System.Collections.Generic;
-using System.Text;
+using System.Threading.Tasks;
 
 namespace CrazyflieDotNet.Crazyflie.Feature
 {
@@ -13,6 +12,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
     {
 
         public const byte ALL_GROUPS = 0;
+        private bool _enabled;
 
         private enum HighlevelCommands : byte
         {
@@ -26,14 +26,26 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         }
 
         private ICrtpCommunicator _communicator;
+        private ICrazyflieParamConfigurator _paramConfigurator;
 
-        internal HighlevelCommander(ICrtpCommunicator communicator)
+        internal HighlevelCommander(ICrtpCommunicator communicator, ICrazyflieParamConfigurator paramConfigurator)
         {
             _communicator = communicator;
+            _paramConfigurator = paramConfigurator;
+        }
+
+        private void EnsureEnabled()
+        {
+            if (!_enabled)
+            {
+                throw new InvalidOperationException("please call and wait for enable first.");
+            }
         }
 
         private void Send(MessageBuilder builder)
         {
+            EnsureEnabled();
+
             var message = builder.Build();
             _communicator.SendMessage(message);
         }
@@ -77,5 +89,39 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
             Send(builder);
         }
-    }
+
+        public Task Enable()
+        {
+            return _paramConfigurator.SetValue("commander.enHighLevel", (byte)1).
+                ContinueWith((state) => { _enabled = true;  });
+        }
+
+        public Task Disable()
+        {
+            return _paramConfigurator.SetValue("commander.enHighLevel", (byte)0).
+                ContinueWith((state) => { _enabled = false; });
+        }
+
+        public void GoTo(float x, float y, float z, float yaw, float durationInSec, bool relative = false, byte groupMask = 0)
+        {
+            byte command = (byte)HighlevelCommands.COMMAND_GO_TO;
+
+            var builder = new MessageBuilder(
+                (byte)CrtpPort.SETPOINT_HL, (byte)CrtpChannel.Channel0);
+            builder.Add(command);
+            builder.Add(groupMask);
+            builder.Add(relative ? (byte)1 : (byte)0);
+            builder.Add(x);
+            builder.Add(y);
+            builder.Add(z);
+            builder.Add(yaw);
+            builder.Add(durationInSec);
+
+            Send(builder);
+        }
+
+
+
+
+}
 }
