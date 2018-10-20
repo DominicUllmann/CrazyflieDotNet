@@ -51,10 +51,11 @@ namespace CrazyflieDotNet.CrazyMessaging
         private bool _safeLink;
         private byte _curr_up = 0;
         private byte _curr_down = 1;
-        private ManualResetEvent _waitForOutqueue = new ManualResetEvent(false);
-        private ManualResetEvent _waitForInqueue = new ManualResetEvent(false);
+        private ManualResetEventSlim _waitForOutqueue = new ManualResetEventSlim(false);
+        private ManualResetEventSlim _waitForInqueue = new ManualResetEventSlim(false);
 
         private ManualResetEvent _comStarted = new ManualResetEvent(false);
+        private ManualResetEvent _eventLoopStarted = new ManualResetEvent(false);
 
         private readonly EventRegistry _crtpEventRegistry = new EventRegistry();
         private readonly AtLeastOnceCommunicatorStrategy _atLeastOnceCommunicatorStrategy;
@@ -94,18 +95,31 @@ namespace CrazyflieDotNet.CrazyMessaging
                 throw new InvalidOperationException("please stop first before trying to start again.");
             }
 
-            _communicationThread = new Thread(new ThreadStart(CommunicationLoopSafe));
-            _communicationThread.Start();
+            _isRunning = true;
+            try
+            {
+                _eventLoopStarted.Reset();
+                _eventLoopThread = new Thread(new ThreadStart(EventLoopSafe));
+                _eventLoopThread.Start();
 
-            if (!_comStarted.WaitOne(5000))
+                if (!_eventLoopStarted.WaitOne(5000))
+                {
+                    throw new InvalidOperationException("event thread start failed");
+                }
+
+                _comStarted.Reset();
+                _communicationThread = new Thread(new ThreadStart(CommunicationLoopSafe));
+                _communicationThread.Start();
+
+                if (!_comStarted.WaitOne(5000))
+                {                    
+                    throw new InvalidOperationException("communication thread start failed");
+                }
+            }
+            catch
             {
                 _isRunning = false;
-                _communicationThread.Abort();
-                throw new InvalidOperationException("communication thread start failed");
             }
-
-            _eventLoopThread = new Thread(new ThreadStart(EventLoopSafe));
-            _eventLoopThread.Start();
         }
 
         private void CommunicationLoopSafe()
@@ -154,9 +168,10 @@ namespace CrazyflieDotNet.CrazyMessaging
         }
 
         public void SendMessage(CrtpMessage message)
-        {
-            lock(_lock)
+        {            
+            lock (_lock)
             {
+                _log.Debug($"enqueue message for port {message.Port} / channel {message.Channel}; number of messages waiting: {_outgoing.Count}");
                 // ensure that outqueue doesn't get too big. Drop older packets if more than one already waiting
                 // so that we have at most 100 packets in queue.
                 while (_outgoing.Count > _maxOutqueue)
@@ -172,8 +187,6 @@ namespace CrazyflieDotNet.CrazyMessaging
 
         private void CommunicationLoop()
         {
-            _isRunning = true;
-
             _retryBeforeDisconnect = NumberOfRetries;
             _emptyCounter = 0;
             _waitTime = 0;
@@ -185,6 +198,7 @@ namespace CrazyflieDotNet.CrazyMessaging
             TryEnableSafeLink();
 
             _comStarted.Set();
+            _log.Info("Communication with crazyfly started.");
 
             while (_isRunning)
             {
@@ -228,6 +242,7 @@ namespace CrazyflieDotNet.CrazyMessaging
                     _emptyCounter = 0;
                     lock (_lock)
                     {
+                        _log.Debug($"incoming queue count: {_incoming.Count}; enqueue for {response.Content.Port} / {response.Content.Channel}");
                         _incoming.Enqueue(response.Content);
                         while (_incoming.Count > _maxInqueue)
                         {                            
@@ -255,7 +270,7 @@ namespace CrazyflieDotNet.CrazyMessaging
                     }
                 }
 
-                _waitForOutqueue.WaitOne(_waitTime);
+                _waitForOutqueue.Wait(_waitTime);
                 lock (_lock)
                 {
                     if (_outgoing.Count > 0)
@@ -269,6 +284,7 @@ namespace CrazyflieDotNet.CrazyMessaging
                     }
                 }
             }
+            _log.Debug("send loop ended");
         }
 
         private void TryEnableSafeLink()
@@ -347,20 +363,23 @@ namespace CrazyflieDotNet.CrazyMessaging
         // the event loop listen on the incoming messages and processed them.
         private void EventLoop()
         {
+            _eventLoopStarted.Set();
             while (_isRunning)
             {
-                _waitForInqueue.WaitOne(1);
+                _waitForInqueue.Wait(1);
+
                 CrtpMessage inMessage = null;
-                lock (this)
+                lock (_lock)
                 {
                     if (_incoming.Count > 0)
                     {
                         inMessage = _incoming.Dequeue();
+                        _log.Debug($"Dequeued message for {inMessage.Channel} / {inMessage.Port}");
                     }
                     if (_incoming.Count == 0)
                     {
                         _waitForInqueue.Reset();
-                    } 
+                    }
                 }
 
                 if (inMessage == null)
@@ -370,6 +389,7 @@ namespace CrazyflieDotNet.CrazyMessaging
 
                 _crtpEventRegistry.Notify(inMessage);
             }
+            _log.Debug("Event loop ended");
         }
 
         public void SendMessageExcpectAnswer(CrtpMessage message, byte[] startResponseContent)
