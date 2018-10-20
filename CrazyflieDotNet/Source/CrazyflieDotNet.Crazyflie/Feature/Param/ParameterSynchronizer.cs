@@ -218,7 +218,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Param
 
                         if (message.Channel == (byte)ParamConfigurator.ParamChannel.READ_CHANNEL)
                         {
-                            _log.Info($"received parameter value result for param {forId}");
+                            _log.Debug($"received parameter value result for param {forId}");
                             // for version 2, it seems that we need to skip 3 bytes (2 for id, 1 for something else).
                             notificationReceived = new ParameterReceivedEventArgs(forId, message.Data.Skip(_useV2 ? 3 : 1).ToArray());
                         }
