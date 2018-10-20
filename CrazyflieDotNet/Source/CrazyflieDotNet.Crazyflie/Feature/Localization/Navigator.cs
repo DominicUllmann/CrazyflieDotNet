@@ -93,7 +93,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             _isRunning = true;
         }
 
-        public Task Stop()
+        public async Task Stop()
         {
             if (_isRunning)
             {
@@ -103,10 +103,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             _isRunning = false;
             _navLogConfig = null;
             _copter.HighLevelCommander.Stop();
-            return _copter.HighLevelCommander.Disable();
+            await _copter.HighLevelCommander.Disable();
         }
 
-        public Task Takeoff(float height, float velocity = 0.2f)
+        public async Task Takeoff(float height, float velocity = 0.2f)
         {
             if (_isFlying)
             {
@@ -114,30 +114,22 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             }
             var duration_s = height / velocity;
 
-            return _copter.HighLevelCommander.Enable().
-                ContinueWith((state) =>
-                {
-                    _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1);
-                }).
-                ContinueWith((state) => Task.Delay(100)).
-                ContinueWith((state) =>
-                {
-                    _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0);
-                }).
-                ContinueWith((state) => Task.Delay(1000)).
-                ContinueWith((state) =>
-                {
-                    _copter.HighLevelCommander.Takeoff(0.5f, duration_s);
-                    _isFlying = true;
-                }).
-                ContinueWith((state) =>
-                    {
-                        Task.Delay(TimeSpan.FromSeconds(duration_s));
-                        _log.Info("Takeoff complete");
-                    });            
+            await _copter.HighLevelCommander.Enable();
+
+            await _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1);
+            await Task.Delay(100);
+
+            await  _copter.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0);
+            await Task.Delay(1000);
+
+            _copter.HighLevelCommander.Takeoff(0.5f, duration_s);
+            _isFlying = true;
+            
+            await Task.Delay(TimeSpan.FromSeconds(duration_s));
+            _log.Info("Takeoff complete");
         }
 
-        public Task Land(float height = 0, float velocity = 0.2f)
+        public async Task Land(float height = 0, float velocity = 0.2f)
         {
             if (!_isFlying)
             {
@@ -150,81 +142,48 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
 
             _copter.HighLevelCommander.Land(height, duration_s);
 
-            return Task.Delay(
-                TimeSpan.FromSeconds(duration_s + 1)) // add 1 second in addition to ensure it had time to settle down.
-            .ContinueWith((state) =>
-            {
-                _log.Info("Land complete");
-            });
+            // add 0.2 second in addition to ensure it had time to settle down.
+            await Task.Delay(TimeSpan.FromSeconds(duration_s + 0.2)); 
+            _log.Info("Land complete");            
         }
 
-        private float CalculateDurationToPositon(float x, float y, float z, float velocity)
+        private float CalcuatleDistanceToPosition(float x, float y, float z)
         {
             var position = CurrentPosition;
             var dx = x - position.X;
             var dy = y - position.Y;
             var dz = z - position.Z;
-            var distance = Math.Sqrt(dx * dx + dy * dy + dz * dz);
+            var distance = (float)Math.Sqrt(dx * dx + dy * dy + dz * dz);
 
-            var duration_s = (float)distance / velocity;
+            return distance;
+        }
+
+        private float CalculateDurationToPositon(float x, float y, float z, float velocity)
+        {
+            var distance = CalcuatleDistanceToPosition(x, y, z);
+
+            var duration_s = distance / velocity;
             return duration_s;
         }
 
-        public Task NavigateTo(float x, float y, float z, float velocity = 0.2f, float variance = 0.05f)
+        public async Task NavigateTo(float x, float y, float z, float velocity = 0.2f, float variance = 0.05f)
         {
             _log.Info($"fly to {x} {y} {z}");
             var duration_s = CalculateDurationToPositon(x, y, z, velocity);
             _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
-            return Task.Delay(TimeSpan.FromSeconds(duration_s)).ContinueWith(
-                (state) =>
-                {
-                    var position = CurrentPosition;
-                    if (!(Math.Abs(position.X - x) < variance &&
-                          Math.Abs(position.Y - y) < variance &&
-                          Math.Abs(position.Z - z) < variance))
-                    {
-                        duration_s = CalculateDurationToPositon(x, y, z, velocity);
-                        _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
-                        return Task.Delay(TimeSpan.FromSeconds(duration_s));
-                    }
-                    else
-                    {
-                        return Task.CompletedTask;
-                    }
-                }).ContinueWith((state) =>
-                {
-                    _log.Info($"navigation to {x} {y} {z} complete.");
-                });
-        }
-
-        /// <summary>
-        /// This navigates to the position specified and returns as soon as
-        /// it has reached that position (as observed by the navigation system).
-        /// </summary>
-        /// <param name="x"></param>
-        /// <param name="y"></param>
-        /// <param name="z"></param>
-        public bool NavigateTo(float x, float y, float z, TimeSpan timeout, float variance)
-        {
-            DateTime startTime = DateTime.Now;
-            while (true)
+            await Task.Delay(TimeSpan.FromSeconds(duration_s));
+            
+            var position = CurrentPosition;
+            if (!(Math.Abs(position.X - x) < variance &&
+                  Math.Abs(position.Y - y) < variance &&
+                  Math.Abs(position.Z - z) < variance))
             {
-                _copter.Commander.SendPositionSetpoint(x, y, z, 0);
-                if (startTime + timeout < DateTime.Now)
-                {
-                    return false; 
-                }
-                if (Math.Abs(CurrentPosition.X - x) < variance &&
-                    Math.Abs(CurrentPosition.Y - y) < variance &&
-                    Math.Abs(CurrentPosition.Z - z) < variance)
-                {
-                    break;
-                }
-                // ensure that we send a command at least every 250 ms and at most every 100ms
-                // optimally, we wait for 3 updates of position until we send again.
-                Thread.Sleep(Math.Max(100, Math.Min(400, 3 * _updatePeriodInMs)));
+                duration_s = Math.Min(0.1f, CalculateDurationToPositon(x, y, z, velocity));
+                _copter.HighLevelCommander.GoTo(x, y, z, 0f, duration_s);
+                await Task.Delay(TimeSpan.FromSeconds(duration_s));                
             }
-            return true;
+            var distance = CalcuatleDistanceToPosition(x, y, z);
+            _log.Info($"navigation to {x} {y} {z} complete. Distance {distance}");
         }
 
         private void InitVarianceHistory()
@@ -243,14 +202,31 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
             }
         }
 
-        public void WaitForCalibratedPosition(TimeSpan timeout)
+        public async Task WaitForCalibratedPosition(TimeSpan timeout)
         {
-            var startTime = DateTime.Now;
-            var threshold = 0.001f;
-            while (true)
+            var cancelToken = new CancellationTokenSource();
+            var timeoutTask = Task.Delay(timeout);
+            var calibrationTask = WaitForCalibratedPosition(cancelToken.Token);
+            await Task.WhenAny(calibrationTask, timeoutTask);
+
+            if (!calibrationTask.IsCompleted)
             {
-                // wait at most for next update; afterwards check if timeout has been reached.
-                _waitForVarianceUpdate.WaitOne(_updatePeriodInMs + 20);
+                cancelToken.Cancel();
+            }
+
+            throw new ApplicationException("calibration failed");
+        }
+
+        public async Task WaitForCalibratedPosition(CancellationToken cancellationToken)
+        {
+            var threshold = 0.001f;
+            while (!cancellationToken.IsCancellationRequested)
+            {
+                await Task.Run(() =>
+                {
+                    // wait at most for next update; afterwards check if timeout has been reached.
+                    _waitForVarianceUpdate.WaitOne(_updatePeriodInMs + 20);
+                });
                 if (!_firstValueTracked)
                 {
                     continue;
@@ -260,12 +236,9 @@ namespace CrazyflieDotNet.Crazyflie.Feature.Localization
                 {
                     return;
                 }
-                if (DateTime.Now > startTime + timeout)
-                {
-                    throw new ApplicationException("calibration failed.");
-                }
-                _waitForVarianceUpdate.Reset();                
-            }            
+                
+                _waitForVarianceUpdate.Reset();
+            }
         }
          
 

@@ -78,6 +78,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         private readonly IList<ParamRequest> _openStoreRequests = new List<ParamRequest>();
         private readonly object _openStoreRequestLock = new object();
 
+        private ManualResetEvent _waitForAllParams = new ManualResetEvent(false);
 
         public event AllParamsUpdatedEventHandler AllParametersUpdated;
 
@@ -107,6 +108,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
             if (!_isUpdated && AreAllParamValuesUpdated())
             {
                 _isUpdated = true;
+                _waitForAllParams.Set();
                 AllParametersUpdated?.Invoke(this, new AllParamsUpdatedEventArgs());
             }
             UpdateOpenRequests(_openLoadRequests, _openLoadRequestLock, e.Id, "load");
@@ -146,13 +148,18 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// <summary>
         /// see <see cref="ICrazyflieParamConfigurator.RequestUpdateOfAllParams"/>
         /// </summary>
-        public void RequestUpdateOfAllParams()
-        {
+        public Task RequestUpdateOfAllParams()
+        {            
             EnsureToc();
-            foreach (var tocElement in CurrentToc)
+            return Task.Run(() =>
             {
-                _paramSynchronizer.RequestLoadParamValue(tocElement.Identifier);
-            }
+                _waitForAllParams.Reset();
+                foreach (var tocElement in CurrentToc)
+                {
+                    _paramSynchronizer.RequestLoadParamValue(tocElement.Identifier);
+                }
+                _waitForAllParams.WaitOne();
+            });
         }
 
         private void EnsureToc()
@@ -282,6 +289,14 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         {
             EnsureToc();
             return CurrentToc.GetElementByCompleteName(completeName) != null;
+        }
+
+        /// <summary>
+        /// Stops the param configuration tasks.
+        /// </summary>
+        public void Stop()
+        {
+            _paramSynchronizer.StopProcessing();
         }
     }
 }

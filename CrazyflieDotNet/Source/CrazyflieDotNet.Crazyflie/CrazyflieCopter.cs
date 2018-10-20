@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
 
 namespace CrazyflieDotNet.Crazyflie
 {
@@ -89,44 +90,68 @@ namespace CrazyflieDotNet.Crazyflie
             }
         }
 
+        private Task StartConnection(RadioChannel? channelToFilterFor = null, RadioDataRate? dataRateToFilterfor = null)
+        {
+            return Task.Run(() =>
+            {
+                _crazyradioDriver = SetupCrazyflieDriver();
+                ConnectToCrazyflie(channelToFilterFor, dataRateToFilterfor);
+                _communicator = new CrtpCommunicator(_crazyradioDriver);
+                _communicator.Start();
+            });
+        }
+
         /// <summary>
         /// Connect to the first or matching copter.
         /// </summary>
         /// <param name="channelToFilterFor">The channel the copter is using.</param>
         /// <param name="dataRateToFilterfor">The data rate it communicates with.</param>
-        public void Connect(RadioChannel? channelToFilterFor = null, RadioDataRate? dataRateToFilterfor = null)
+        public async Task Connect(RadioChannel? channelToFilterFor = null, RadioDataRate? dataRateToFilterfor = null)
         {
-            _crazyradioDriver = SetupCrazyflieDriver();
-            ConnectToCrazyflie(channelToFilterFor, dataRateToFilterfor);
-            _communicator = new CrtpCommunicator(_crazyradioDriver);
-            _communicator.Start();
+            await StartConnection(channelToFilterFor, dataRateToFilterfor);
+
             _platformService = new PlatformService(_communicator);
-            _platformService.FetchPlatformInformations().Wait();
+            await _platformService.FetchPlatformInformations();                
+                       
             bool useV2 = _platformService.ProtocolVersion >= 4;
+
             _paramConfigurator = new ParamConfigurator(_communicator, useV2, _cacheDirectory);
             _logger = new Logger(_communicator, useV2, _cacheDirectory);
-            var paramTask =_paramConfigurator.RefreshToc();
-            var logTaks = _logger.RefreshToc();
-            paramTask.Wait();
-            logTaks.Wait();
+
+            await _paramConfigurator.RefreshToc();
+            await _logger.RefreshToc();
+
             _commander = new Commander(_communicator, false);
             _highlevelCommander = new HighlevelCommander(_communicator, _paramConfigurator);
         }
 
-        public void Disconnect()
+        /// <summary>
+        /// Stop communiation with the copter and shutdown the radio driver.
+        /// </summary>
+        public async void Disconnect()
         {
             try
             {
-                if (_communicator != null)
+                try
                 {
-                    _communicator.Stop();
+                    if (_paramConfigurator != null)
+                    {
+                        await Task.Run(() => _paramConfigurator.Stop());
+                    }
+                }
+                finally
+                {
+                    if (_communicator != null)
+                    {
+                        await Task.Run(() => _communicator.Stop());
+                    }
                 }
             }
             finally
             {
                 if (_crazyradioDriver != null)
                 {
-                    _crazyradioDriver.Close();
+                    await Task.Run(() => _crazyradioDriver.Close());
                 }
             }
         }

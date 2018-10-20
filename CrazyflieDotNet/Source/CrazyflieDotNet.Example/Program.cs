@@ -1,14 +1,10 @@
 ﻿using CrazyflieDotNet.Crazyflie;
 using CrazyflieDotNet.Crazyflie.Feature;
 using CrazyflieDotNet.Crazyflie.Feature.Log;
-using CrazyflieDotNet.CrazyMessaging;
-using CrazyflieDotNet.Crazyradio.Driver;
 using log4net;
 using log4net.Config;
 using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -26,26 +22,23 @@ namespace CrazyflieDotNet.Example
             try
             {
                 var crazyflie = new CrazyflieCopter();
-                crazyflie.Connect();
+                crazyflie.Connect().Wait();
 
                 try
                 {
-
                     LoggingExample(crazyflie);
+                    //ParameterExample(crazyflie);
+
                     CommanderExample(crazyflie);
-                    ParameterExample(crazyflie);
+                    
+                    Console.WriteLine("Sleepy time...Wait for high level demo Press ENTER.");
+                    WaitForKey(ConsoleKey.Enter);
+
                     HighLevelCommandExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
+                    WaitForKey(ConsoleKey.Escape);
 
-                    var sleep = true;
-                    while (sleep)
-                    {
-                        if (Console.KeyAvailable && Console.ReadKey().Key == ConsoleKey.Escape)
-                        {
-                            sleep = false;
-                        }
-                    }
                 }
                 catch (Exception ex)
                 {
@@ -60,28 +53,61 @@ namespace CrazyflieDotNet.Example
 
             Console.WriteLine("ended.");
             Console.ReadLine();
-        }
+        }        
 
-        
+        private static void WaitForKey(ConsoleKey key)
+        {
+            var sleep = true;
+            while (sleep)
+            {
+                if (Console.KeyAvailable && Console.ReadKey().Key == key)
+                {
+                    sleep = false;
+                }
+            }
+        }
 
         private static void HighLevelCommandExample(CrazyflieCopter crazyflie)
         {
             if (crazyflie.ParamConfigurator.IsParameterKnown("commander.enHighLevel"))
             {
-                crazyflie.ParamConfigurator.SetValue("commander.enHighLevel", (byte)1);
-                crazyflie.ParamConfigurator.SetValue("stabilizer.controller", (byte)2);
+                crazyflie.HighLevelCommander.Enable().Wait();
+                // To enable the mellinger controller:
+                //crazyflie.ParamConfigurator.SetValue("stabilizer.controller", (byte)2).Wait();
+                // To enable the default controller:
+                //crazyflie.ParamConfigurator.SetValue("stabilizer.controller", (byte)1).Wait();
 
-                crazyflie.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1);
+                crazyflie.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)1).Wait();
                 Thread.Sleep(10);
-                crazyflie.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0);
+                crazyflie.ParamConfigurator.SetValue("kalman.resetEstimation", (byte)0).Wait();
                 Thread.Sleep(1000);
+
+                try
+                {
+                    crazyflie.HighLevelCommander.Takeoff(0.3f, 2f);
+                    Thread.Sleep(2000);
+                    crazyflie.HighLevelCommander.Land(0, 2f);
+                    Thread.Sleep(2100);
+                }
+                finally
+                {
+                    crazyflie.HighLevelCommander.Stop();
+                    crazyflie.HighLevelCommander.Disable().Wait();
+                }
+
+            }
+            else
+            {
+                Log.Error("Highlevel commander not available. Update Crazyflie firmware.");
             }
         }
 
         private static void ParameterExample(CrazyflieCopter crazyflie)
         {
-            crazyflie.ParamConfigurator.RequestUpdateOfAllParams();
-            crazyflie.ParamConfigurator.AllParametersUpdated += ParamConfigurator_AllParametersUpdated;
+            crazyflie.ParamConfigurator.RequestUpdateOfAllParams().Wait();
+            // alternatively you can also use event AllParametersUpdated
+            var result = crazyflie.ParamConfigurator.GetLoadedParameterValue("system.selftestPassed");
+            Log.Info($"self test passed: {Convert.ToBoolean(result)}");
         }
 
         private static void ParamConfigurator_AllParametersUpdated(object sender, AllParamsUpdatedEventArgs args)
@@ -92,11 +118,17 @@ namespace CrazyflieDotNet.Example
 
         private static void CommanderExample(CrazyflieCopter crazyflie)
         {
-            crazyflie.Commander.SendSetPoint(0, 0, 0, 0);
-            for (int i = 0; i < 100; i++)
+            // use a velocity of 0.2m/sec for 2 seconds in z direction to start.
+            for (int i = 0; i < 10; i++)
+            {                
+                crazyflie.Commander.SendVelocityWorldSetpoint(0, 0, 0.2f, 0);
+                Thread.Sleep(200);
+            }
+            // use a velocity of -0.2m/sec for 2 seconds in z direction to land.
+            for (int i = 0; i < 10; i++)
             {
-                crazyflie.Commander.SendSetPoint(1, 1, 1, 12000);
-                Thread.Sleep(20);
+                crazyflie.Commander.SendVelocityWorldSetpoint(0, 0, -0.2f, 0);
+                Thread.Sleep(200);
             }
         }
 
@@ -119,6 +151,8 @@ namespace CrazyflieDotNet.Example
 
             crazyflie.Logger.StopConfig(config);
             crazyflie.Logger.DeleteConfig(config);
+
+            Thread.Sleep(1000);
         }
 
         private static void Config_LogDataReceived(object sender, LogDataReceivedEventArgs e)

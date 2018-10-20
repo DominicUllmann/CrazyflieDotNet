@@ -14,7 +14,7 @@ namespace CrazyflieDotNet.Crazyflie.Feature
         /// Request an update of all the parameters in the TOC. 
         /// This downloads all parameters stored in the toc one by one.
         /// </summary>
-        void RequestUpdateOfAllParams();
+        Task RequestUpdateOfAllParams();
 
         /// <summary>
         /// The event AllParametersUpdated indicate that RequestUpdateOfAllParams has been completed.
