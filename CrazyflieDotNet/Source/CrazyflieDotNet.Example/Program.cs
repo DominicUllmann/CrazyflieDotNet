@@ -27,7 +27,10 @@ namespace CrazyflieDotNet.Example
                 try
                 {
                     LoggingExample(crazyflie);
-                    //ParameterExample(crazyflie);
+                    ParameterExample(crazyflie);
+
+                    Console.WriteLine("Sleepy time...Wait for takeoff demo Press ENTER.");
+                    WaitForKey(ConsoleKey.Enter);
 
                     CommanderExample(crazyflie);
                     
