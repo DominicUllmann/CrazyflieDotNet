@@ -116,6 +116,10 @@ namespace CrazyflieDotNet.Crazyflie.Feature
 
         private void UpdateOpenRequests(IList<ParamRequest> requests, object lockObject, ushort paramId, string operationName)
         {
+            // UpdateOpenRequests is called both for the case a single update request with wait has been placed
+            // or also in case all parameter updates have been requested (where we don't track individual requests)
+            // therefore, for the first case, we expect a request in the openRequests whereas in the
+            // second case, there is none.
             ParamRequest toRemove = null;
             lock (lockObject)
             {
@@ -125,18 +129,14 @@ namespace CrazyflieDotNet.Crazyflie.Feature
                     if (request.CheckRequestFullfilledWithNotification(paramId))
                     {
                         toRemove = request;
-                        _log.Info($"fullfilled parameter {operationName} request for id {toRemove.Id}");
+                        _log.Debug($"fullfilled parameter {operationName} request for id {toRemove.Id}");
                         break;
                     }
                 }
                 if (toRemove != null)
                 {
                     requests.Remove(toRemove);
-                }
-                else
-                {
-                    _log.Warn($"found not matching {operationName} request for answer for id: {paramId}; number of requests open: {requests.Count}");
-                }
+                }                
             }
         }
 
