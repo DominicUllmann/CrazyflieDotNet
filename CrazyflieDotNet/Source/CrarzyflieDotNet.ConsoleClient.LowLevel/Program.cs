@@ -6,8 +6,9 @@ using System.IO;
 using System.Reflection;
 using System.Threading;
 
-namespace CrazyflieDotNet.ConsoleClient
+namespace CrarzyflieDotNet.ConsoleClient.LowLevel
 {
+
     class Program
     {
         private static readonly ILog Log = LogManager.GetLogger(typeof(Program));
@@ -51,22 +52,32 @@ namespace CrazyflieDotNet.ConsoleClient
         }
 
         private static void Fly(CrazyflieCopter crazyflie)
-        {            
+        {
             ResetPositionEstimator(crazyflie);
-            crazyflie.ParamConfigurator.SetValue("flightmode.posSet", (byte)1);
+            crazyflie.ParamConfigurator.SetValue("flightmode.posSet", (byte)0);
             try
             {
-                float vIncrement = 0.05f;
-                float yawIncrement = 5;
-                float vx = 0;
-                float vy = 0;
-                float vz = -0.4f; // ensure that it doesn't takeoff directly.
+                ushort thrustIncrements = 1000;
+                float pitchIncrements = 5;
+                float yawIncrements = 2;
+                float rollIncrements = 5;
+                ushort thrust = 15000;
+                float pitch = 0;
                 float yaw = 0;
+                float roll = 0;
+
+                for (int i = 0; i < 10; i++)
+                {
+                    crazyflie.Commander.SendSetPoint(0, 0, 0, 0);
+                }
+                Thread.Sleep(200);
+                crazyflie.Commander.SendSetPoint(0, 0, 0, 15000);
+
 
                 var loop = true;
                 while (loop)
                 {
-                    Log.InfoFormat($"Vx: {vx}, Vy: {vy}, vz: {vz}, Yaw: {yaw}.");
+                    Log.InfoFormat("Thrust: {0}, Pitch: {1}, Roll: {2}, Yaw: {3}.", thrust, pitch, roll, yaw);
 
                     if (Console.KeyAvailable)
                     {
@@ -80,37 +91,37 @@ namespace CrazyflieDotNet.ConsoleClient
                             case ConsoleKey.Spacebar:
                                 loop = LandAndPause(crazyflie);
                                 continue;
-                            // move up
+                            // thrust up
                             case ConsoleKey.UpArrow:
-                                vz += vIncrement;
+                                thrust += thrustIncrements;
                                 break;
-                            // move down
+                            // thrust down
                             case ConsoleKey.DownArrow:
-                                vz -= vIncrement;
+                                thrust -= thrustIncrements;
                                 break;
                             // yaw right
                             case ConsoleKey.RightArrow:
-                                yaw += yawIncrement;
+                                yaw += yawIncrements;
                                 break;
                             // yaw left
                             case ConsoleKey.LeftArrow:
-                                yaw -= yawIncrement;
+                                yaw -= yawIncrements;
                                 break;
-                            // move in negative x direction
+                            // pitch backward
                             case ConsoleKey.S:
-                                vx -= vIncrement;
+                                pitch += pitchIncrements;
                                 break;
-                            // move in postive x direction
+                            // pitch forward
                             case ConsoleKey.W:
-                                vx += vIncrement;
+                                pitch -= pitchIncrements;
                                 break;
-                            // move in positive y direction
+                            // roll right
                             case ConsoleKey.D:
-                                vy += vIncrement;
+                                roll += rollIncrements;
                                 break;
-                            // move in negative y direction
+                            // roll left
                             case ConsoleKey.A:
-                                vy -= vIncrement;
+                                roll -= rollIncrements;
                                 break;
                             default:
                                 Log.InfoFormat("Invalid key for action.");
@@ -118,8 +129,9 @@ namespace CrazyflieDotNet.ConsoleClient
                         }
                     }
 
-                    crazyflie.Commander.SendVelocityWorldSetpoint(vx, vy, vz, yaw);
-                    Thread.Sleep(50);
+                    Thread.Sleep(20);
+                    crazyflie.Commander.SendSetPoint(roll, pitch, yaw, thrust);
+
                 }
             }
             catch (Exception)
@@ -142,7 +154,7 @@ namespace CrazyflieDotNet.ConsoleClient
         {
             for (int i = 0; i < 10; i++)
             {
-                crazyflie.Commander.SendVelocityWorldSetpoint(0, 0, -0.2f, 0);
+                crazyflie.Commander.SendSetPoint(0, 0, 0, (ushort)(15000 - (10 * i)));
                 Thread.Sleep(200);
             }
             crazyflie.Commander.SendStopSetPoint();
@@ -169,8 +181,8 @@ namespace CrazyflieDotNet.ConsoleClient
             }
 
             ResetPositionEstimator(crazyflie);
-            crazyflie.Commander.SendVelocityWorldSetpoint(0, 0, -0.4f, 0);
             return true;
         }
     }
+
 }
