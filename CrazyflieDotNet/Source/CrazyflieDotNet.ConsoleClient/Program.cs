@@ -56,7 +56,7 @@ namespace CrazyflieDotNet.ConsoleClient
             crazyflie.ParamConfigurator.SetValue("flightmode.posSet", (byte)1);
             try
             {
-                float vIncrement = 0.1f;
+                float vIncrement = 0.05f;
                 float yawIncrement = 5;
                 float vx = 0;
                 float vy = 0;
@@ -96,19 +96,19 @@ namespace CrazyflieDotNet.ConsoleClient
                             case ConsoleKey.LeftArrow:
                                 yaw -= yawIncrement;
                                 break;
-                            // move in positive y direction
+                            // move in negative x direction
                             case ConsoleKey.S:
+                                vx -= vIncrement;
+                                break;
+                            // move in postive x direction
+                            case ConsoleKey.W:
+                                vx += vIncrement;
+                                break;
+                            // move in positive y direction
+                            case ConsoleKey.D:
                                 vy += vIncrement;
                                 break;
                             // move in negative y direction
-                            case ConsoleKey.W:
-                                vy -= vIncrement;
-                                break;
-                            // move in positive x direction
-                            case ConsoleKey.D:
-                                vx += vIncrement;
-                                break;
-                            // roll left
                             case ConsoleKey.A:
                                 vy -= vIncrement;
                                 break;
