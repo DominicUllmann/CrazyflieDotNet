@@ -20,7 +20,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrazyflieDotNet.Example", "
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrazyflieDotNet.ConsoleClient", "Source\CrazyflieDotNet.ConsoleClient\CrazyflieDotNet.ConsoleClient.csproj", "{0AB122B6-8709-45C6-B3A1-6F34FB14DFD4}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrarzyflieDotNet.ConsoleClient.LowLevel", "Source\CrarzyflieDotNet.ConsoleClient.LowLevel\CrarzyflieDotNet.ConsoleClient.LowLevel.csproj", "{EB6FD223-E563-4F97-93D6-10E0E898F757}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "CrarzyflieDotNet.ConsoleClient.LowLevel", "Source\CrarzyflieDotNet.ConsoleClient.LowLevel\CrarzyflieDotNet.ConsoleClient.LowLevel.csproj", "{EB6FD223-E563-4F97-93D6-10E0E898F757}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CrazyflieDotNet.ConsoleJoystick", "Source\CrazyflieDotNet.ConsoleJoystick\CrazyflieDotNet.ConsoleJoystick.csproj", "{A7D6008F-00E3-4432-95BB-FC5A4A93C729}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -56,6 +58,10 @@ Global
 		{EB6FD223-E563-4F97-93D6-10E0E898F757}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EB6FD223-E563-4F97-93D6-10E0E898F757}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EB6FD223-E563-4F97-93D6-10E0E898F757}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7D6008F-00E3-4432-95BB-FC5A4A93C729}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7D6008F-00E3-4432-95BB-FC5A4A93C729}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7D6008F-00E3-4432-95BB-FC5A4A93C729}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7D6008F-00E3-4432-95BB-FC5A4A93C729}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
