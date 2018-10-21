@@ -1,5 +1,6 @@
 ﻿using CrazyflieDotNet.Crazyflie;
 using CrazyflieDotNet.Crazyflie.Feature;
+using CrazyflieDotNet.Crazyflie.Feature.Localization;
 using CrazyflieDotNet.Crazyflie.Feature.Log;
 using log4net;
 using log4net.Config;
@@ -39,6 +40,11 @@ namespace CrazyflieDotNet.Example
 
                     HighLevelCommandExample(crazyflie);
 
+                    Console.WriteLine("Sleepy time...Wait for high level navigator demo Press ENTER.");
+                    WaitForKey(ConsoleKey.Enter);
+
+                    NavigationExample(crazyflie);
+
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
                     WaitForKey(ConsoleKey.Escape);
 
@@ -68,6 +74,60 @@ namespace CrazyflieDotNet.Example
                     sleep = false;
                 }
             }
+        }
+
+        private static void NavigationExample(CrazyflieCopter crazyflie)
+        {
+            var task = crazyflie.ParamConfigurator.RefreshParameterValue("flightmode.posSet");
+            task.Wait();
+            Log.Info("flightmode.posSet before: " + task.Result);
+
+            task = crazyflie.ParamConfigurator.RefreshParameterValue("stabilizer.controller");
+            task.Wait();
+            Log.Info("stabilizer.controller before: " + task.Result);
+
+            //crazyflie.ParamConfigurator.SetValue("stabilizer.controller", (byte)2).Wait();
+
+            //crazyflie.ParamConfigurator.SetValue("flightmode.posSet", (byte)1).Wait();
+            //crazyflie.ParamConfigurator.SetValue("stabilizer.controller", (byte)1);
+            var navigator = new Navigator(crazyflie);
+            try
+            {
+                navigator.PositionUpdate += Navigator_PositionUpdate;
+                navigator.Start(100);
+
+                try
+                {
+                    navigator.WaitForCalibratedPosition(TimeSpan.FromSeconds(15)).Wait();
+                }
+                catch (Exception ex)
+                {
+                    Log.Error("didn't found a calibration; abort demo.");
+                    return;
+                }
+
+                navigator.Takeoff(1f).Wait();
+                Log.Warn("Takeoff now done");
+                navigator.NavigateTo(0.4f, 0.4f, 1f).Wait();
+                navigator.NavigateTo(1.6f, 0.4f, 1f).Wait();
+                navigator.NavigateTo(1.6f, 1.1f, 1f).Wait();
+                navigator.NavigateTo(0.4f, 1.1f, 1f).Wait();
+                navigator.NavigateTo(0.4f, 0.4f, 1f).Wait();
+
+                navigator.Land(-0.3f).Wait();
+
+            }
+            finally
+            {
+
+                navigator.Stop().Wait();
+            }
+        }                         
+
+        private static void Navigator_PositionUpdate(object sender, PositionUpdateEventArgs args)
+        {
+            Log.Info("current estimated position: " + args.CurrentPosition);
+            Log.Info($"current variance: {((Navigator)sender).VarianceX} / {((Navigator)sender).VarianceY} / {((Navigator)sender).VarianceZ}");
         }
 
         private static void HighLevelCommandExample(CrazyflieCopter crazyflie)
@@ -142,7 +202,7 @@ namespace CrazyflieDotNet.Example
             {
                 Log.Warn("stabilizer.roll not a known log variable");
             }
-            var config = crazyflie.Logger.CreateEmptyLogConfigEntry("Stabilizer", 10);
+            var config = crazyflie.Logger.CreateEmptyLogConfigEntry("Stabilizer", 100);
             config.AddVariable("stabilizer.roll", "float");
             config.AddVariable("stabilizer.pitch", "float");
             config.AddVariable("stabilizer.yaw", "float");
