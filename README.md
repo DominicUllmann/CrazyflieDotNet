@@ -1,19 +1,18 @@
 # CrazyflieDotNet
 Dot.NET libraries written in C# for Crazyflie Quadcopters and Crazyradios.
 
-###### [Builds](https://travis-ci.org/ckarcz/CrazyflieDotNet):
+###### [Builds](https://travis-ci.com/DominicUllmann/CrazyflieDotNet):
 
 | Branch      | Build                                                                                                                                |
 |-------------|--------------------------------------------------------------------------------------------------------------------------------------|
-| master      | [![Build Status](https://travis-ci.org/ckarcz/CrazyflieDotNet.svg?branch=master)](https://travis-ci.org/ckarcz/CrazyflieDotNet)      |
-| dev         | [![Build Status](https://travis-ci.org/ckarcz/CrazyflieDotNet.svg?branch=dev)](https://travis-ci.org/ckarcz/CrazyflieDotNet)         |
+| master      | [![Build Status](https://travis-ci.com/DominicUllmann/CrazyflieDotNet/CrazyflieDotNet.svg?branch=master)](https://travis-ci.com/DominicUllmann/CrazyflieDotNet)      |
 
-###### [Releases](https://github.com/ckarcz/CrazyflieDotNet/releases):
+###### [Releases](https://github.com/DominicUllmann/CrazyflieDotNet/releases):
 | Version |                                                                                                                    |
 |---------|--------------------------------------------------------------------------------------------------------------------|
-| v0.1     | [![Github Releases (by Release)](https://img.shields.io/github/downloads/ckarcz/CrazyflieDotNet/v0.1/total.svg)](https://github.com/ckarcz/CrazyflieDotNet/releases/tag/0.1) |
+| v0.1     | [![Github Releases (by Release)](https://img.shields.io/github/downloads/ckarcz/CrazyflieDotNet/v0.1/total.svg)](https://github.com/DominicUllmann/CrazyflieDotNet/releases/tag/0.1) |
 
-[![Issues](https://img.shields.io/github/issues/ckarcz/CrazyflieDotNet.svg)](https://github.com/ckarcz/CrazyflieDotNet/issues)
+[![Issues](https://img.shields.io/github/issues/ckarcz/CrazyflieDotNet.svg)](https://github.com/DominicUllmann/CrazyflieDotNet/issues)
 
 # About The CrazyFlie
 The [Crazyflie](https://www.bitcraze.io/crazyflie/) is a tiny open source picocopter/quadcopter that began as a side project by a bunch of engineers and grew to great internet acclaim via a [HackADay posting in 2011](http://hackaday.com/2011/04/29/mini-quadrocopter-is-crazy-awesome).
@@ -31,19 +30,11 @@ A lot of hard and a couple years later, they were able to bring their Crazyflie 
 * [Crazyradio Documentation](https://wiki.bitcraze.io/doc:crazyradio:index)
 
 # About This Project
-This is currently a work in progress in my spare time.
+This project is based on the work of Chris Karcz. It supports now in addition Logging, Parameters, HighlevelCommander, .... It is now implemented on .NET Standard 2.0/.NET Core 2.1 (with the exception of the joystick demo)
+
+This is currently a work in progress.
 
 :star: Pull requests are welcome if good implementation and clean code! :star:
-
-## Milestones:
-- Working .NET abstraction "driver" for Crazyradio USB dongle. - COMPLETED
-- Implement the Crazyradio Transfer Protocol (CRTP). - IN PROGRESS
-  - Able to ping copter and send commander packets to control the copter. - COMPLETED
-    - Working flight with wired in PS3 controller.
-- Cross platform support using Mono framework. - TBD
-- Front end design and development. - TBD
-
-The C# CrazyradioDriver is completed and working. This library (CrazyflieDotNet.Crazyradio.dll) provides a type safe API for communication with the Crazyradio USB dongle with Crazyflies. The library and "driver" expose all available configurations for the USB dongle, including defaults. The API is quite nice and easy to understand and use, even for a beginner.
 
 # Development
 
