@@ -10,16 +10,16 @@ namespace CrazyflieDotNet.Crazyradio
 
         private static readonly ILog _log = LogManager.GetLogger(typeof(CrazyradioSelection));
 
-        private CrazyRadioCommunicationLock _radioLock;
+        private CrazyradioCommunicationLock _radioLock;
         private CrazyflieId _id;
 
-        internal CrazyradioSelection(CrazyRadioCommunicationLock radioLock, CrazyflieId id)
+        internal CrazyradioSelection(CrazyradioCommunicationLock radioLock, CrazyflieId id)
         {
             _radioLock = radioLock;
             _id = id;
         }
 
-        public ICrazyRadioCommunicationTicket AquireLock()
+        public ICrazyradioCommunicationTicket AquireLock()
         {
             if (!_radioLock.Driver.IsOpen)
             {
@@ -34,7 +34,7 @@ namespace CrazyflieDotNet.Crazyradio
                     throw new ApplicationException("Failed to open crazy radio");
                 }
             }
-            return new CrazyRadioCommunicationTicket(_radioLock, _id.RadioChannel, _id.RadioAddress, _id.RadioDataRate);            
+            return new CrazyradioCommunicationTicket(_radioLock, _id.RadioChannel, _id.RadioAddress, _id.RadioDataRate);            
         }
     }
 }

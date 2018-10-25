@@ -6,12 +6,12 @@ namespace CrazyflieDotNet.Crazyradio.Parallel
     /// <summary>
     /// This class manages the locking of the radio device / release of lock.
     /// </summary>
-    internal class CrazyRadioCommunicationLock
+    internal class CrazyradioCommunicationLock
     {
 
         private readonly object _lock = new object();
 
-        internal CrazyRadioCommunicationLock(ICrazyradioDriver driver)
+        internal CrazyradioCommunicationLock(ICrazyradioDriver driver)
         {
             Driver = driver;
         }

@@ -24,7 +24,7 @@ namespace CrazyflieDotNet.Example
 
             try
             {
-                var radioManager = CrazyRadioManager.Instance;
+                var radioManager = CrazyradioManager.Instance;
                 var uri = radioManager.Scan().FirstOrDefault();
                 if (uri == null)
                 {

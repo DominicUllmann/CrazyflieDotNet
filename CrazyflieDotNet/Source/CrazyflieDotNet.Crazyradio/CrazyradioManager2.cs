@@ -11,15 +11,15 @@ namespace CrazyflieDotNet.Crazyradio
     /// <summary>
     /// The manager which ensures that accesses to different crazyflies are serialized.
     /// </summary>
-    public class CrazyRadioManager : ICrazyRadioManager
+    public class CrazyradioManager : ICrazyradioManager
     {
-        private static readonly ILog _log = LogManager.GetLogger(typeof(CrazyRadioManager));
-        private static CrazyRadioManager _instance;
+        private static readonly ILog _log = LogManager.GetLogger(typeof(CrazyradioManager));
+        private static CrazyradioManager _instance;
         private object _lock = new object();
 
-        private readonly IList<CrazyRadioCommunicationLock> _radios = new List<CrazyRadioCommunicationLock>();
+        private readonly IList<CrazyradioCommunicationLock> _radios = new List<CrazyradioCommunicationLock>();
 
-        private CrazyRadioManager()
+        private CrazyradioManager()
         {
             try
             {
@@ -27,7 +27,7 @@ namespace CrazyflieDotNet.Crazyradio
                 var radios = CrazyradioDriver.GetCrazyradios().ToList();
                 foreach (var radio in radios)
                 {
-                    _radios.Add(new CrazyRadioCommunicationLock(radio));
+                    _radios.Add(new CrazyradioCommunicationLock(radio));
                 }
             }
             catch (Exception ex)
@@ -84,13 +84,13 @@ namespace CrazyflieDotNet.Crazyradio
             }
         }
 
-        public static ICrazyRadioManager Instance
+        public static ICrazyradioManager Instance
         {
             get
             {                
                 if (_instance == null)
                 {
-                    _instance = new CrazyRadioManager();
+                    _instance = new CrazyradioManager();
                 }
                 return _instance;
             }            
@@ -118,7 +118,7 @@ namespace CrazyflieDotNet.Crazyradio
             }
         }
 
-        private IList<CrazyflieId> ScanDriver(CrazyRadioCommunicationLock crazyRadioCommunicationLock)
+        private IList<CrazyflieId> ScanDriver(CrazyradioCommunicationLock crazyRadioCommunicationLock)
         {
             var scanResult = crazyRadioCommunicationLock.Driver.ScanChannels();
             var result = new List<CrazyflieId>();

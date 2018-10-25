@@ -8,7 +8,7 @@ namespace CrazyflieDotNet.Crazyradio.Parallel
     /// crazyradio exclusively. To release the lock, call dispose.
     /// As long as you hold the lock, it's not possible to communicate with another crazyflie.
     /// </summary>
-    public interface ICrazyRadioCommunicationTicket : IDisposable
+    public interface ICrazyradioCommunicationTicket : IDisposable
     {
         /// <summary>
         /// Sends a packet of data in array of byte form via the Crazyradio USB dongle.

@@ -13,7 +13,7 @@ namespace CrazyflieDotNet.Crazyflie
 
         private static readonly ILog _log = LogManager.GetLogger(typeof(CrazyflieCopter));
 
-        private ICrazyRadioManager _radioManager;
+        private ICrazyradioManager _radioManager;
         private CrtpCommunicator _communicator;
         private CrazyflieUri _uri;
 
@@ -29,7 +29,7 @@ namespace CrazyflieDotNet.Crazyflie
         /// </summary>
         /// <param name="cacheDirectory">set cacheDirectory to the directory where to store table of contents downloaded from the crazyfly for
         /// connection speed up. Default: .\cache</param>
-        public CrazyflieCopter(ICrazyRadioManager radioManager, DirectoryInfo cacheDirectory = null)
+        public CrazyflieCopter(ICrazyradioManager radioManager, DirectoryInfo cacheDirectory = null)
         {            
             if (cacheDirectory == null)
             {

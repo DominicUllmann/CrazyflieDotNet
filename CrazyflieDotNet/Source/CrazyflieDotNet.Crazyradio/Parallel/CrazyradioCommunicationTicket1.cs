@@ -4,13 +4,13 @@ namespace CrazyflieDotNet.Crazyradio.Parallel
 {
 
     /// <summary>
-    /// See <see cref="ICrazyRadioCommunicationTicket"/>.
+    /// See <see cref="ICrazyradioCommunicationTicket"/>.
     /// </summary>
-    internal class CrazyRadioCommunicationTicket : ICrazyRadioCommunicationTicket
+    internal class CrazyradioCommunicationTicket : ICrazyradioCommunicationTicket
     {
-        private CrazyRadioCommunicationLock _radioLock;
+        private CrazyradioCommunicationLock _radioLock;
 
-        public CrazyRadioCommunicationTicket(CrazyRadioCommunicationLock radioLock, RadioChannel channel, RadioAddress radioAddress, RadioDataRate radioDataRate)
+        public CrazyradioCommunicationTicket(CrazyradioCommunicationLock radioLock, RadioChannel channel, RadioAddress radioAddress, RadioDataRate radioDataRate)
         {
             _radioLock = radioLock;
             _radioLock.AquireLock(channel, radioAddress, radioDataRate);

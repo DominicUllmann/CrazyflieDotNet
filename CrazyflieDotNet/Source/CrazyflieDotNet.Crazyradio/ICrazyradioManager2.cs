@@ -7,7 +7,7 @@ namespace CrazyflieDotNet.Crazyradio
     /// To use it:    
     /// 
     /// </summary>
-    public interface ICrazyRadioManager
+    public interface ICrazyradioManager
     {
 
         /// <summary>
