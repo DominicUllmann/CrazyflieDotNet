@@ -8,7 +8,7 @@ namespace CrazyflieDotNet.Crazyradio.Driver
         public RadioDataRate RadioDataRate { get; }
         public RadioAddress RadioAddress { get; }
 
-        internal CrazyflieId(RadioChannel radioChannel, RadioDataRate radioDataRate, RadioAddress radioAddress)
+        public CrazyflieId(RadioChannel radioChannel, RadioDataRate radioDataRate, RadioAddress radioAddress)
         {
             RadioChannel = radioChannel;
             RadioDataRate = radioDataRate;
