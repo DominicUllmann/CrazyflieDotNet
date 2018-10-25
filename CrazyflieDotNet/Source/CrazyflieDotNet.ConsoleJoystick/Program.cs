@@ -1,4 +1,5 @@
 ﻿using CrazyflieDotNet.Crazyflie;
+using CrazyflieDotNet.Crazyradio;
 using log4net;
 using log4net.Config;
 using SlimDX.DirectInput;
@@ -21,8 +22,14 @@ namespace CrazyflieDotNet.ConsoleJoystick
 
             try
             {
-                var crazyflie = new CrazyflieCopter();
-                crazyflie.Connect().Wait();
+                var radioManager = CrazyradioManager.Instance;
+                var uri = radioManager.Scan().FirstOrDefault();
+                if (uri == null)
+                {
+                    throw new ApplicationException("no crazyflie detected");
+                }
+                var crazyflie = new CrazyflieCopter(radioManager);
+                crazyflie.Connect(uri).Wait();
 
                 try
                 {
