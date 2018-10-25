@@ -10,5 +10,11 @@ namespace CrazyflieDotNet.Crazyradio.Parallel
     /// </summary>
     public interface ICrazyRadioCommunicationTicket : IDisposable
     {
+        /// <summary>
+        /// Sends a packet of data in array of byte form via the Crazyradio USB dongle.
+        /// </summary>
+        /// <param name="packetData">The array of bytes to send by this Crazyradio USB dongle.</param>
+        /// <returns>the response message</returns>
+        byte[] SendData(byte[] packetData);
     }
 }

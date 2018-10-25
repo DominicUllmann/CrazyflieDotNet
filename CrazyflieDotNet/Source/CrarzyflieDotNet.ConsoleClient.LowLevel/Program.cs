@@ -1,8 +1,10 @@
 ﻿using CrazyflieDotNet.Crazyflie;
+using CrazyflieDotNet.Crazyradio;
 using log4net;
 using log4net.Config;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -20,8 +22,15 @@ namespace CrarzyflieDotNet.ConsoleClient.LowLevel
 
             try
             {
-                var crazyflie = new CrazyflieCopter();
-                crazyflie.Connect().Wait();
+                var radioManager = CrazyRadioManager.Instance;
+                var uri = radioManager.Scan().FirstOrDefault();
+                if (uri == null)
+                {
+                    throw new ApplicationException("no crazyflie detected");
+                }
+                var crazyflie = new CrazyflieCopter(radioManager);
+                
+                crazyflie.Connect(uri).Wait();
 
                 try
                 {

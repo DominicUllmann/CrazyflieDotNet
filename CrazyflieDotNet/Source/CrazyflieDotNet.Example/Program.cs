@@ -2,10 +2,12 @@
 using CrazyflieDotNet.Crazyflie.Feature;
 using CrazyflieDotNet.Crazyflie.Feature.Localization;
 using CrazyflieDotNet.Crazyflie.Feature.Log;
+using CrazyflieDotNet.Crazyradio;
 using log4net;
 using log4net.Config;
 using System;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 
@@ -22,8 +24,14 @@ namespace CrazyflieDotNet.Example
 
             try
             {
-                var crazyflie = new CrazyflieCopter();
-                crazyflie.Connect().Wait();
+                var radioManager = CrazyRadioManager.Instance;
+                var uri = radioManager.Scan().FirstOrDefault();
+                if (uri == null)
+                {
+                    throw new ApplicationException("no crazyflie detected");
+                }
+                var crazyflie = new CrazyflieCopter(radioManager);
+                crazyflie.Connect(uri).Wait();
 
                 try
                 {
@@ -34,16 +42,16 @@ namespace CrazyflieDotNet.Example
                     WaitForKey(ConsoleKey.Enter);
 
                     CommanderExample(crazyflie);
-                    
-                    Console.WriteLine("Sleepy time...Wait for high level demo Press ENTER.");
-                    WaitForKey(ConsoleKey.Enter);
-
-                    HighLevelCommandExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Wait for high level navigator demo Press ENTER.");
                     WaitForKey(ConsoleKey.Enter);
 
                     NavigationExample(crazyflie);
+
+                    Console.WriteLine("Sleepy time...Wait for high level demo Press ENTER.");
+                    WaitForKey(ConsoleKey.Enter);
+
+                    HighLevelCommandExample(crazyflie);
 
                     Console.WriteLine("Sleepy time...Hit ESC to quit.");
                     WaitForKey(ConsoleKey.Escape);
@@ -102,7 +110,7 @@ namespace CrazyflieDotNet.Example
                 }
                 catch (Exception ex)
                 {
-                    Log.Error("didn't found a calibration; abort demo.");
+                    Log.Error("didn't found a calibration; abort demo", ex);
                     return;
                 }
 

@@ -1,5 +1,5 @@
 ﻿using CrazyflieDotNet.CrazyMessaging.Protocol;
-using CrazyflieDotNet.Crazyradio.Driver;
+using CrazyflieDotNet.Crazyradio;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -44,7 +44,7 @@ namespace CrazyflieDotNet.CrazyMessaging
         private readonly Queue<CrtpMessage> _incoming = new Queue<CrtpMessage>();
         private readonly object _lock = new object();
 
-        private readonly ICrazyradioDriver _crazyradioDriver;
+        private readonly ICrazyradioSelection _crazyradioSelection;
         private Thread _communicationThread;
         private Thread _eventLoopThread;
         private bool _isRunning;
@@ -70,9 +70,13 @@ namespace CrazyflieDotNet.CrazyMessaging
         private const int _maxInqueue = 100;
         private const int _maxOutqueue = 20;
 
-        public CrtpCommunicator(ICrazyradioDriver crazyradioDriver)
+        public CrtpCommunicator(ICrazyradioSelection crazyradioSelection)
         {
-            _crazyradioDriver = crazyradioDriver;
+            if (_crazyradioSelection == null)
+            {
+                throw new ArgumentNullException(nameof(crazyradioSelection));
+            }
+            _crazyradioSelection = crazyradioSelection;
             _atLeastOnceCommunicatorStrategy = new AtLeastOnceCommunicatorStrategy(this);
         }
 
@@ -85,11 +89,6 @@ namespace CrazyflieDotNet.CrazyMessaging
 
         public void Start()
         {
-            if (!_crazyradioDriver.IsOpen || _crazyradioDriver.Channel == null)
-            {
-                throw new InvalidOperationException("please open the radio driver first and select channel");
-            }
-
             if (_communicationThread != null || _eventLoopThread != null)
             {
                 throw new InvalidOperationException("please stop first before trying to start again.");
@@ -293,12 +292,15 @@ namespace CrazyflieDotNet.CrazyMessaging
             {
                 try
                 {
-                    byte[] response = _crazyradioDriver.SendData(new byte[] { 0xff, 0x05, 0x01 });
-                    if (response.Length == 4 &&
-                        response[1] == 0xff && response[2] == 0x05 && response[3] == 0x01)
+                    using (var comLock = _crazyradioSelection.AquireLock())
                     {
-                        _safeLink = true;
-                        break;
+                        byte[] response = comLock.SendData(new byte[] { 0xff, 0x05, 0x01 });
+                        if (response.Length == 4 &&
+                            response[1] == 0xff && response[2] == 0x05 && response[3] == 0x01)
+                        {
+                            _safeLink = true;
+                            break;
+                        }
                     }
                 }
                 catch (Exception ex)
@@ -346,7 +348,10 @@ namespace CrazyflieDotNet.CrazyMessaging
                 content[0] &= 0xF3;
                 content[0] |= (byte)(_curr_up << 3 | _curr_down << 2);
             }
-            var result = new CrtpResponse(_crazyradioDriver.SendData(content));
+            CrtpResponse result;
+            using (var comLock = _crazyradioSelection.AquireLock()) {
+                result = new CrtpResponse(comLock.SendData(content));
+            }
             if (_safeLink) {
                 if (result.Ack && ((result.Content.Header & 0x04) == (_curr_down << 2)))
                 {
